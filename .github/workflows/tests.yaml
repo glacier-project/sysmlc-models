@@ -1,0 +1,39 @@
+name: Tests
+
+on:
+  push:
+    branches:
+    - main
+    - dev
+  pull_request:
+    branches:
+    - main
+    - dev
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  unit:
+    name: Unit (${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - python-version: '3.12'
+          tox-env: py312
+        - python-version: '3.13'
+          tox-env: py313
+    steps:
+    - uses: actions/checkout@v6
+    - uses: ./.github/actions/setup-python-uv
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Run unit tests
+      run: uv run --locked --extra dev tox run -e ${{ matrix.tox-env }}

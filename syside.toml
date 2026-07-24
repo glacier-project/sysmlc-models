@@ -1,0 +1,10 @@
+#:schema https://docs.sensmetry.com/schemas/latest/syside.schema.json
+
+exclude = [
+    ".venv",
+    ".tox",
+    ".pytest_cache",
+    ".ruff_cache",
+    "dist",
+    "sysmlc_models/data/showcase/build",
+]
