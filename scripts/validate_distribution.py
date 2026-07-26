@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Build the project distribution and verify the wheel imports cleanly."""
+"""Build the project distribution and validate the built wheel.
+
+Validation covers two properties: the wheel imports cleanly away from the
+source checkout, and it ships exactly the git-tracked package files (no
+model file dropped by the build, no generated or cache file leaking in).
+"""
 
 from __future__ import annotations
 
@@ -8,6 +13,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import zipfile
 from pathlib import Path
 
 DEFAULT_PACKAGE = "sysmlc_models"
@@ -78,11 +84,62 @@ def verify_wheel_import(wheel: Path, package: str) -> None:
         run([sys.executable, "-c", import_code], cwd=Path(tmp_dir))
 
 
+def verify_wheel_contents(wheel: Path, package: str) -> None:
+    """Verify the wheel ships exactly the git-tracked package files.
+
+    Compares the wheel's entries under ``package`` with the files git
+    tracks under the same directory. A tracked file missing from the
+    wheel means the build dropped package data; a wheel entry git does
+    not track means a generated or cache file leaked into the
+    distribution.
+
+    Args:
+        wheel: The built wheel archive.
+        package: Import package name whose contents are compared.
+
+    Raises:
+        RuntimeError: If the script runs outside a git checkout, or the
+            wheel and the git index disagree.
+    """
+    tracked_output = subprocess.run(
+        ["git", "ls-files", "-z", "--", package],
+        check=True,
+        capture_output=True,
+    ).stdout
+    tracked = {name.decode() for name in tracked_output.split(b"\0") if name}
+    if not tracked:
+        raise RuntimeError(
+            f"git tracks no files under {package!r}; run this script "
+            "from the repository root of a git checkout."
+        )
+    with zipfile.ZipFile(wheel) as archive:
+        shipped = {
+            name
+            for name in archive.namelist()
+            if name.startswith(f"{package}/")
+        }
+    problems = []
+    missing = sorted(tracked - shipped)
+    if missing:
+        problems.append(
+            "tracked files missing from the wheel:\n  " + "\n  ".join(missing)
+        )
+    unexpected = sorted(shipped - tracked)
+    if unexpected:
+        problems.append(
+            "wheel entries not tracked by git:\n  " + "\n  ".join(unexpected)
+        )
+    if problems:
+        raise RuntimeError("\n".join(problems))
+    print(f"wheel contents match {len(tracked)} git-tracked files")
+
+
 def main() -> int:
     """Build and validate the project distribution."""
     args = parse_args()
     wheel = build_distribution(Path(args.dist_dir))
     verify_wheel_import(wheel, args.package)
+    verify_wheel_contents(wheel, args.package)
     return 0
 
 
