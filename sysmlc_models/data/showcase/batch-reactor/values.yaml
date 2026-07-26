@@ -1,9 +1,9 @@
 # Example configuration for the batch reactor: a sped-up single-batch
 # recipe (handy for simulation runs and the test bench). Build with:
 #
-#   sysmlc rosetta build models/showcase/batch-reactor \
+#   sysmlc rosetta build showcase/batch-reactor \
 #     -e BatchReactor::BatchReactorBehavior \
-#     --values models/showcase/batch-reactor/values.yaml
+#     --values values.yaml
 BatchReactor:
   BatchReactorBehavior:
     batchTarget: 1
