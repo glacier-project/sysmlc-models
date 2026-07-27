@@ -53,6 +53,23 @@ def model_file(name: str) -> Path:
     return path
 
 
+def model_dirs_under(root: Path) -> list[Path]:
+    """Return the model directories below ``root``, sorted by path.
+
+    This is the corpus discovery rule: a model directory is any directory
+    that directly contains SysML source files, found recursively so nested
+    variant groups are traversed.
+
+    Args:
+        root: The directory tree to search.
+
+    Returns:
+        The absolute paths of directories that directly contain SysML source
+        files.
+    """
+    return sorted({source.parent for source in root.rglob("*.sysml")})
+
+
 def iter_models(corpus: str) -> list[Path]:
     """Return the model directories within a corpus, sorted by name.
 
@@ -66,5 +83,4 @@ def iter_models(corpus: str) -> list[Path]:
     Raises:
         FileNotFoundError: If the corpus is not bundled.
     """
-    root = model_path(corpus)
-    return sorted({source.parent for source in root.rglob("*.sysml")})
+    return model_dirs_under(model_path(corpus))
