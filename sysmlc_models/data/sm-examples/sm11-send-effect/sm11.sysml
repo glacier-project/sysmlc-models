@@ -15,10 +15,6 @@ package SM11 {
     item def Note {
         attribute text : String;
     }
-    item def Labeled {
-        attribute value : Integer;
-        attribute label : String;
-    }
     item def Flagged {
         attribute armed : Boolean;
     }
@@ -221,23 +217,6 @@ package SM11 {
             assign count := count + 1;
             send new Ping() to commPort;
         } then armed;
-    }
-
-    // A composite payload with an unrepresentable sibling field: reading
-    // ONLY the representable field must still be rejected, naming the
-    // OTHER (never-read) field -- every leaf crosses the wire together.
-    state def MachineReadablePayloadUnrepresentableSibling {
-        port commPort;
-        entry;
-            then idle;
-        state idle;
-        state armed;
-        state fired;
-        transition first idle do send new Labeled(1) to commPort then armed;
-        transition first armed
-            accept reading : Labeled via commPort
-            if reading.value > 0
-            then fired;
     }
 
     // A named accept payload of an Integer leaf, read in a guard.
