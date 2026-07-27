@@ -1,3 +1,7 @@
+// Reference Furuta state machine. Several same-source transitions can be
+// enabled by one AngleReading; LF/Rosetta resolves them by declaration order,
+// while SysML itself leaves that choice undefined. Use the deterministic
+// sibling for Quake execution.
 package FurutaPendulum {
     private import ScalarValues::*;
     private import NumericalFunctions::*;
@@ -9,7 +13,7 @@ package FurutaPendulum {
 
     // Internal state type: composite attribute (attribute def so the backend
     // recognises it as a structured type and emits a PendulumState dataclass
-    // into the generated furutaSystem_types companion module).
+    // into the backend's generated companion types module).
     // Default: pendulum hanging DOWN (theta = pi ≈ 3.14159, velocities zero).
     attribute def PendulumState {
         attribute theta   : Real = 3.14159;
@@ -94,8 +98,6 @@ package FurutaPendulum {
         rep impl language "Python"
             /*
              * def step(x, u, dt):
-             *     from furutaSystem_types import PendulumState
-             *
              *     x0 = x.theta
              *     x1 = x.d_theta
              *     x3 = x.d_phi
@@ -131,7 +133,7 @@ package FurutaPendulum {
              *         + ALPHA * G * u
              *     )
              *
-             *     return PendulumState(
+             *     return type(x)(
              *         theta=x.theta + x0_dot * dt,
              *         d_theta=x.d_theta + x1_dot * dt,
              *         phi=x.phi + x2_dot * dt,

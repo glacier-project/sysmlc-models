@@ -16,8 +16,8 @@ The corpora ship as package data under `sysmlc_models/data/`:
 
 | Corpus         | Models | Contents                                                                                                                  |
 | -------------- | -----: | ------------------------------------------------------------------------------------------------------------------------- |
-| `sm-examples/` |     26 | the SysML state-machine example corpus, `sm01-helloworld` onward, plus the `part*` multi-machine fixtures                 |
-| `showcase/`    |     11 | end-to-end showcase systems (furuta-pendulum, thermostat, milling-workcell, …)                                            |
+| `sm-examples/` |     25 | the SysML state-machine example corpus, `sm01-helloworld` onward, plus the `part*` multi-machine fixtures                 |
+| `showcase/`    |     11 | end-to-end showcase models and variants (Furuta pendulum, thermostat, milling workcell, …)                                |
 | `ice-lab/`     |      6 | the industrial ICE-lab plant: plant definition, recipes, domain models, equipment state machines, OPC-UA service metadata |
 
 ## Installation
@@ -37,9 +37,10 @@ from sysmlc_models.catalog import model_path, model_file, iter_models
 
 # a corpus or a model directory
 model_path("sm-examples/sm01-helloworld")
+model_path("showcase/furuta-pendulum/deterministic")
 # a single file within a corpus
 model_file("showcase/furuta-pendulum/furuta_physics.py")
-# every model directory in a corpus
+# every directory containing SysML sources, including nested variants
 iter_models("sm-examples")
 ```
 

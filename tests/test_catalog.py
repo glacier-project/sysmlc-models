@@ -34,6 +34,16 @@ def test_iter_models_lists_corpus_directories() -> None:
     assert "sm01-helloworld" in {path.name for path in dirs}
 
 
+def test_iter_models_discovers_nested_showcase_variants() -> None:
+    root = model_path("showcase")
+    relative = {
+        path.relative_to(root).as_posix() for path in iter_models("showcase")
+    }
+    assert "furuta-pendulum/deterministic" in relative
+    assert "furuta-pendulum/nondeterministic" in relative
+    assert "furuta-pendulum" not in relative
+
+
 def test_curated_examples_resolve_to_directories() -> None:
     assert SM_EXAMPLES
     for example in SM_EXAMPLES:

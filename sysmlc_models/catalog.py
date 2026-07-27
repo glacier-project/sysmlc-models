@@ -60,10 +60,11 @@ def iter_models(corpus: str) -> list[Path]:
         corpus: A corpus name, e.g. ``"showcase"`` or ``"sm-examples"``.
 
     Returns:
-        The absolute paths of the corpus's immediate sub-directories.
+        The absolute paths of directories that directly contain SysML source
+        files. Nested variant groups are traversed recursively.
 
     Raises:
         FileNotFoundError: If the corpus is not bundled.
     """
     root = model_path(corpus)
-    return sorted(path for path in root.iterdir() if path.is_dir())
+    return sorted({source.parent for source in root.rglob("*.sysml")})
