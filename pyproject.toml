@@ -2,7 +2,8 @@
 name = "sysmlc-models"
 version = "0.0.0"
 description = "SysML v2 model corpora and catalog API for the sysmlc toolchain"
-authors = [{ name = "Mario Libro", email = "mario.libro@univr.it" }]
+authors = [{ name = "The Glacier Project contributors" }]
+maintainers = [{ name = "Mario Libro", email = "mario.libro@univr.it" }]
 requires-python = ">=3.12,<4"
 readme = "README.md"
 license = "BSD-2-Clause"
