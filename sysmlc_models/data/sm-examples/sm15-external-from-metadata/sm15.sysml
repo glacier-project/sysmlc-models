@@ -2,7 +2,7 @@ package SM15ExtImp {
     private import ExternalModuleBinding::*;
     @ExternalModule {
         lang = "python";
-        files = ("data/sm-examples/sm15-external-from-metadata/ramp.py");
+        files = ("sm-examples/sm15-external-from-metadata/ramp.py");
     }
 
     private import ScalarValues::*;
