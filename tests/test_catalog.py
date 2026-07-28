@@ -1,8 +1,18 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import pytest
 
-from sysmlc_models.catalog import iter_models, model_file, model_path
+if TYPE_CHECKING:
+    from pathlib import Path
+
+from sysmlc_models.catalog import (
+    iter_models,
+    model_dirs_under,
+    model_file,
+    model_path,
+)
 from sysmlc_models.sm_examples import SM_EXAMPLES, SM_EXAMPLES_BY_DIR
 
 
@@ -34,8 +44,28 @@ def test_iter_models_lists_corpus_directories() -> None:
     assert "sm01-helloworld" in {path.name for path in dirs}
 
 
+def test_iter_models_discovers_nested_showcase_variants() -> None:
+    root = model_path("showcase")
+    relative = {
+        path.relative_to(root).as_posix() for path in iter_models("showcase")
+    }
+    assert "furuta-pendulum/deterministic" in relative
+    assert "furuta-pendulum/nondeterministic" in relative
+    assert "furuta-pendulum" not in relative
+
+
 def test_curated_examples_resolve_to_directories() -> None:
     assert SM_EXAMPLES
     for example in SM_EXAMPLES:
         assert example.model_dir.is_dir()
     assert "sm11-send-effect" in SM_EXAMPLES_BY_DIR
+
+
+def test_model_dirs_under_discovers_nested_dirs(tmp_path: Path) -> None:
+    flat = tmp_path / "flat"
+    flat.mkdir()
+    (flat / "m.sysml").touch()
+    nested = tmp_path / "group" / "variant"
+    nested.mkdir(parents=True)
+    (nested / "m.sysml").touch()
+    assert model_dirs_under(tmp_path) == [flat, nested]

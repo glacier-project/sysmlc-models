@@ -15,11 +15,11 @@ State convention (matches the LF reference):
   phi     - horizontal arm angle
   d_phi   - arm angular velocity
 
-Inputs are the generated dataclasses from the companion module
-`furutaSystem_types` (shipped to the compiled LF program via `files:`):
-  `step` receives a `PendulumState` and returns a new `PendulumState`.
-  The torque functions receive an `AngleReading`.
-Neither function mutates its input.
+The functions operate structurally on the generated dataclasses: ``step``
+reconstructs the same runtime class as its input, while the torque functions
+only read the four angle fields. This keeps one support module compatible with
+both Quake and Rosetta even though their companion module names differ.
+No function mutates its input.
 
 Port subtlety — x3_dot bug in the LF source
 --------------------------------------------
@@ -36,10 +36,28 @@ A comment marks exactly where the fix is applied.
 from __future__ import annotations
 
 import math
-from typing import TYPE_CHECKING
+from typing import Protocol, TypeVar
 
-if TYPE_CHECKING:
-    from furutaSystem_types import AngleReading, PendulumState
+
+class PendulumState(Protocol):
+    """Structural type of the simulator's generated state dataclass."""
+
+    theta: float
+    d_theta: float
+    phi: float
+    d_phi: float
+
+
+class AngleReading(Protocol):
+    """Structural type of the generated sensor-reading dataclass."""
+
+    theta: float
+    d_theta: float
+    phi: float
+    d_phi: float
+
+
+PendulumStateT = TypeVar("PendulumStateT", bound=PendulumState)
 
 # ---------------------------------------------------------------------------
 # Physical / integration constants (from PendulumSimulation.lf)
@@ -134,7 +152,7 @@ def restrict_angle(theta: float) -> float:
     return (math.fmod(math.fabs(theta) + pi, 2 * pi) - pi) * _sign(theta)
 
 
-def step(x: PendulumState, u: float, dt: float) -> PendulumState:
+def step(x: PendulumStateT, u: float, dt: float) -> PendulumStateT:
     """One forward-Euler integration step of the Furuta pendulum dynamics.
 
     Integrates the equations of motion under arm torque *u* for a time
@@ -177,12 +195,8 @@ def step(x: PendulumState, u: float, dt: float) -> PendulumState:
         dt: Integration step size [s].
 
     Returns:
-        New ``PendulumState(theta, d_theta, phi, d_phi)``.
+        New state with the same generated runtime type as ``x``.
     """
-    from furutaSystem_types import (
-        PendulumState,  # generated; on path via files:
-    )
-
     x0 = x.theta
     x1 = x.d_theta
     x3 = x.d_phi
@@ -217,7 +231,7 @@ def step(x: PendulumState, u: float, dt: float) -> PendulumState:
         + ALPHA * G * u
     )
 
-    return PendulumState(
+    return type(x)(
         theta=x.theta + x0_dot * dt,
         d_theta=x.d_theta + x1_dot * dt,
         phi=x.phi + x2_dot * dt,
