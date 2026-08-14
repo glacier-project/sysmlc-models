@@ -1,6 +1,6 @@
 package SM15ExtImp {
-    private import ExternalModuleBinding::*;
-    @ExternalModule {
+    private import ForeignArtifactBinding::*;
+    @ForeignArtifact {
         lang = "python";
         files = ("./ramp.py");
     }
