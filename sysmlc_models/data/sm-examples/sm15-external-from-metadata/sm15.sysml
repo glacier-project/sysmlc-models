@@ -4,6 +4,10 @@ package SM15ExtImp {
         lang = "python";
         files = ("./ramp.py");
     }
+    @ForeignArtifact {
+        lang = "C";
+        files = ("./ramp.c");
+    }
 
     private import ScalarValues::*;
     private import SI::*;
