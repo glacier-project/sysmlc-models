@@ -6,7 +6,11 @@ package SM15ExtImp {
     }
     @ForeignArtifact {
         lang = "C";
-        files = ("./ramp.c", "./ramp.h");
+        files = ("./ramp.c");
+    }
+    @ForeignArtifact {
+        lang = "C_H";
+        files = ("./ramp.h");
     }
 
     private import ScalarValues::*;
