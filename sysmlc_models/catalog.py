@@ -5,6 +5,7 @@ accessors here resolve a corpus, a model directory, or a single file to a
 real filesystem path, which is what ``syside`` and ``load_model`` require:
 they read ``.sysml`` sources from a directory on disk, so the data is always
 installed unpacked (editable in development, unzipped in a wheel install).
+
 """
 
 from __future__ import annotations
