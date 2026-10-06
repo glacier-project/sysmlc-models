@@ -1,3 +1,11 @@
+// Deterministic Furuta variant. It differs from the sibling nondeterministic
+// model only in the controller's complementary guards, which ensure exactly
+// one transition is enabled per reading.
+// SysML leaves the selection among same-source enabled transitions undefined,
+// so the nondeterministic model runs only under LF's extra-spec declaration-order
+// priority; these guards encode that same priority explicitly, making the
+// model deterministic under any conformant tool (Quake included). The shared
+// ../furuta_physics.py operates on the backend-generated dataclasses.
 package FurutaPendulum {
     private import ScalarValues::*;
     private import NumericalFunctions::*;
@@ -9,7 +17,7 @@ package FurutaPendulum {
 
     // Internal state type: composite attribute (attribute def so the backend
     // recognises it as a structured type and emits a PendulumState dataclass
-    // into the generated furutaSystem_types companion module).
+    // into the backend's generated companion types module).
     // Default: pendulum hanging DOWN (theta = pi ≈ 3.14159, velocities zero).
     attribute def PendulumState {
         attribute theta   : Real = 3.14159;
@@ -164,9 +172,11 @@ package FurutaPendulum {
             then sendSwingUpToCatching;
         transition first sendSwingUpToCatching then catching;
 
-        // Default: compute swing-up torque, send, stay in swingUp
+        // Complement of the guard above: not near the top, so compute
+        // swing-up torque, send, stay in swingUp
         transition first swingUp
             accept r : AngleReading via armPort
+            if abs(r.theta) >= 0.1
             do assign u := FurutaPendulum::swingup_torque(r)
             then sendSwingUp;
         transition first sendSwingUp then swingUp;
@@ -182,16 +192,19 @@ package FurutaPendulum {
             then sendCatchingToStabilizing;
         transition first sendCatchingToStabilizing then stabilizing;
 
-        // Guard: pendulum dropped → send u, back to swing-up
+        // Guard: pendulum dropped, and arm not yet stopped so this yields
+        // to the transition above → send u, back to swing-up
         transition first catching
             accept r : AngleReading via armPort
-            if abs(r.theta) > 0.2
+            if abs(r.theta) > 0.2 and abs(r.d_phi) >= 0.05
             then sendCatchingToSwingUp;
         transition first sendCatchingToSwingUp then swingUp;
 
-        // Default: compute catch torque, send, stay in catching
+        // Complement of the two guards above: arm still moving and pendulum
+        // near the top, so compute catch torque, send, stay in catching
         transition first catching
             accept r : AngleReading via armPort
+            if abs(r.d_phi) >= 0.05 and abs(r.theta) <= 0.2
             do assign u := FurutaPendulum::catch_torque(r)
             then sendCatching;
         transition first sendCatching then catching;
@@ -206,9 +219,11 @@ package FurutaPendulum {
             then sendStabilizingToSwingUp;
         transition first sendStabilizingToSwingUp then swingUp;
 
-        // Default: compute stabilizing torque, send, stay in stabilizing
+        // Complement of the guard above: pendulum still near the top, so
+        // compute stabilizing torque, send, stay in stabilizing
         transition first stabilizing
             accept r : AngleReading via armPort
+            if abs(r.theta) <= 0.2
             do assign u := FurutaPendulum::stabilize_torque(r)
             then sendStabilizing;
         transition first sendStabilizing then stabilizing;
