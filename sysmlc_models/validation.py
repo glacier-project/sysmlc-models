@@ -28,10 +28,11 @@ class Entry:
 
 @dataclass(frozen=True)
 class Input:
-    """One payload-free input occurrence at a logical millisecond."""
+    """One input occurrence with optional scalar payload fields."""
 
     time_ms: int
     signal: str
+    fields: tuple[tuple[str, Scalar], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -60,6 +61,8 @@ class Scenario:
             allow a time interval rather than one exact trace.
         forbidden_states: States that must never be entered during the run.
         support: Optional Python support file within the bundled catalog.
+        states: Exact leaf/completion sequence when only ordering is asserted.
+        failure: Required runtime diagnostic for a negative model scenario.
     """
 
     name: str
@@ -77,6 +80,8 @@ class Scenario:
     forbidden_states: tuple[str, ...] = ()
     support: str | None = None
     concurrent_entries: bool = False
+    states: tuple[str, ...] = ()
+    failure: str | None = None
 
 
 @dataclass(frozen=True)
@@ -85,6 +90,7 @@ class Result:
 
     entries: tuple[Entry, ...]
     attributes: tuple[tuple[str, Scalar], ...] = ()
+    failure: str | None = None
 
 
 def assert_result(scenario: Scenario, result: Result) -> None:
@@ -98,9 +104,29 @@ def assert_result(scenario: Scenario, result: Result) -> None:
         AssertionError: If an entry is missing, unexpected or mistimed, or
             a requested attribute does not have its expected final value.
     """
-    assert scenario.entries or scenario.milestones, (
-        f"{scenario.name}: no observable success criterion"
-    )
+    assert (
+        scenario.entries
+        or scenario.states
+        or scenario.milestones
+        or scenario.failure
+    ), f"{scenario.name}: no observable success criterion"
+    if scenario.failure is None:
+        assert result.failure is None, (
+            f"{scenario.name}: unexpected runtime failure {result.failure!r}"
+        )
+    else:
+        assert (
+            result.failure is not None and scenario.failure in result.failure
+        ), (
+            f"{scenario.name}: expected failure {scenario.failure!r}, "
+            f"observed {result.failure!r}"
+        )
+    if scenario.states:
+        actual_states = tuple(entry.state for entry in result.entries)
+        assert actual_states == scenario.states, (
+            f"{scenario.name}: expected states {scenario.states!r}, "
+            f"observed {actual_states!r}"
+        )
     if scenario.entries:
         matches = (
             Counter(result.entries) == Counter(scenario.entries)
@@ -159,6 +185,10 @@ def validate_scenario(
         raise ValueError("part scenarios use their model's built-in testbench")
     if scenario.kind == "state" and scenario.support is not None:
         raise ValueError("external support is configured for part scenarios")
+    if backend == "statix" and any(event.fields for event in scenario.inputs):
+        raise ValueError("Statix's host runner accepts payload-free inputs")
+    if scenario.failure is not None and backend != "rosetta":
+        raise ValueError("runtime failure scenarios require the LF adapter")
     adapter = importlib.import_module(f"sysmlc_models._validation.{backend}")
     run = cast("Callable[[Scenario, Path], Result]", adapter.run)
     work_dir.mkdir(parents=True, exist_ok=True)
@@ -185,6 +215,24 @@ def validate_quake_initialization(model_name: str) -> None:
     from sysmlc_models._validation.quake import check_initialization
 
     check_initialization(model_name)
+
+
+def validate_rosetta_inertness(model_name: str, work_dir: Path) -> None:
+    """Check that a showcase run has no competing LF transition triggers.
+
+    Args:
+        model_name: Bundled catalog path of one showcase model directory.
+        work_dir: Fresh directory for generated sources and build artifacts.
+
+    Raises:
+        ImportError: If Rosetta and its compiler dependencies are absent.
+        AssertionError: If build, execution or collision checks fail.
+        OSError: If a required compiler or executable cannot be launched.
+        subprocess.TimeoutExpired: If compilation or execution times out.
+    """
+    from sysmlc_models._validation.inertness import check
+
+    check(model_name, work_dir)
 
 
 def main() -> None:

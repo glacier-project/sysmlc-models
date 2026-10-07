@@ -23,7 +23,12 @@ if TYPE_CHECKING:
 def test_scenario_catalog_has_unique_names_and_valid_times() -> None:
     assert len({s.name for s in SCENARIOS}) == len(SCENARIOS)
     for scenario in SCENARIOS:
-        assert scenario.entries or scenario.milestones
+        assert (
+            scenario.entries
+            or scenario.states
+            or scenario.milestones
+            or scenario.failure
+        )
         assert scenario.horizon_ms > 0
         assert set(scenario.backends) <= set(BACKENDS)
         assert scenario.backends
@@ -89,6 +94,56 @@ def test_contract_rejects_reordered_sequential_entries() -> None:
     )
     with pytest.raises(AssertionError, match="expected entries"):
         assert_result(scenario, Result(tuple(reversed(scenario.entries))))
+
+
+def test_state_sequence_checks_order_and_multiplicity() -> None:
+    scenario = Scenario(
+        "loop",
+        "model",
+        "Machine",
+        4000,
+        (),
+        states=("idle", "running", "running", "done"),
+    )
+    entries = tuple(
+        Entry(i * 1000, state) for i, state in enumerate(scenario.states)
+    )
+    assert_result(scenario, Result(entries))
+    for wrong in (
+        entries[:-1],
+        entries[:2] + entries[3:],
+        tuple(reversed(entries)),
+    ):
+        with pytest.raises(AssertionError, match="expected states"):
+            assert_result(scenario, Result(wrong))
+
+
+def test_negative_scenario_requires_its_runtime_diagnostic() -> None:
+    scenario = Scenario(
+        "bad-setpoint",
+        "model",
+        "Machine",
+        1000,
+        (),
+        backends=("rosetta",),
+        failure="setpointPositive",
+    )
+    assert_result(
+        scenario, Result((), failure="constraint setpointPositive violated")
+    )
+    for failure in (
+        None,
+        "ModuleNotFoundError",
+        "constraint tempBand violated",
+    ):
+        with pytest.raises(AssertionError, match="expected failure"):
+            assert_result(scenario, Result((), failure=failure))
+
+
+def test_positive_scenario_rejects_a_runtime_failure() -> None:
+    scenario = Scenario("ok", "model", "Machine", 1000, (Entry(0, "done"),))
+    with pytest.raises(AssertionError, match="unexpected runtime failure"):
+        assert_result(scenario, Result(scenario.entries, failure="crashed"))
 
 
 @pytest.mark.parametrize("entries", [(), (Entry(15001, "monitor::done"),)])

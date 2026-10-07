@@ -54,7 +54,9 @@ The curated single-machine example list is exposed by
 Execution scenarios and their expectations live in
 `sysmlc_models.scenarios.SCENARIOS`. Each scenario names its model and
 element, input occurrences, logical-time horizon, and either an exact
-state-entry trace or required completion milestones. Scalar overrides and
+state-entry trace, ordered state sequence, required completion milestones,
+or a named runtime failure. Inputs can carry scalar payload fields.
+Scalar overrides and
 final values are part of the same contract. A successful compile or an
 exit code of zero cannot replace these observations.
 
@@ -91,6 +93,14 @@ implementation is extracted by core in the compiler suite:
 uv run --extra dev --extra compiler pytest -m compiler tests
 ```
 
+The catalog covers assignment and effect values, nested and parallel states,
+completion joins and restart, absolute deadlines, and the showcase behavior
+and fault paths. Paired showcase testbenches must reach `tb::done` before
+their failure deadline and never enter `tb::fail`; a clean timeout cannot
+satisfy that contract. The Rosetta matrix also retains the full showcase
+transition-trigger collision check. Shipped YAML configurations are checked
+against their documented neutral values in the compiler suite.
+
 The deterministic Furuta part also runs on Quake and Rosetta. Its monitor
 must complete within 15 logical seconds, and its failure state must never
 be entered. Small state-machine tests in the backend repositories verify
@@ -101,6 +111,10 @@ their different policies for competing enabled transitions.
 | Shared semantics, YAML configuration and override diagnostics | core         |
 | Model trajectories, physics, verdicts and logical deadlines   | models       |
 | Generated types, target code, runtime ABI and target policy   | each backend |
+
+Showcase cases keep the backend support of the migrated tests. Quake's
+library rejects absolute `at` triggers, and Statix's host runner accepts
+payload-free inputs; those cases explicitly select their supported targets.
 
 Keep target-specific tests when their purpose is a generated artifact or
 native runtime contract. Remove a duplicated model execution only after
