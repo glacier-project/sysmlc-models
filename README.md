@@ -27,7 +27,7 @@ The core and the backends pull this package in through their `dev` and
 To install it on its own:
 
 ```bash
-uv pip install git+https://github.com/glacier-project/sysmlc-models@dev
+uv pip install git+https://github.com/glacier-project/sysmlc-models@main
 ```
 
 ## Usage
