@@ -10,6 +10,10 @@ license = "BSD-2-Clause"
 dependencies = []
 
 [project.optional-dependencies]
+compiler = ["sysmlc"]
+validation-quake = ["sysmlc", "sysmlc-quake"]
+validation-rosetta = ["sysmlc", "sysmlc-rosetta"]
+validation-statix = ["sysmlc", "sysmlc-statix"]
 dev = [
     "build>=1.3.0,<2",
     "hatchling>=1.27,<2",
@@ -20,6 +24,12 @@ dev = [
     "tox-uv>=1.15,<2",
     "pytest>=8.4.2,<10",
 ]
+
+[tool.uv.sources]
+sysmlc = { git = "https://github.com/glacier-project/sysmlc-core", branch = "main" }
+sysmlc-quake = { git = "https://github.com/glacier-project/sysmlc-quake", branch = "main" }
+sysmlc-rosetta = { git = "https://github.com/glacier-project/sysmlc-rosetta", branch = "main" }
+sysmlc-statix = { git = "https://github.com/glacier-project/sysmlc-statix", branch = "main" }
 
 [build-system]
 requires = ["hatchling>=1.27,<2"]
@@ -117,3 +127,8 @@ line-ending = "auto"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = "-m 'not compiler and not integration'"
+markers = [
+    "compiler: model checks requiring core and a Syside license",
+    "integration: shared scenarios requiring an installed execution backend",
+]
