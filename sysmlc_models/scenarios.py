@@ -1,5 +1,7 @@
 """Model-owned execution expectations shared by target validation suites."""
 
+from sysmlc_models._scenarios_showcase import SHOWCASE_SCENARIOS
+from sysmlc_models._scenarios_state import STATE_SCENARIOS
 from sysmlc_models.validation import Entry, Input, Milestone, Scenario
 
 SCENARIOS: tuple[Scenario, ...] = (
@@ -146,4 +148,6 @@ SCENARIOS: tuple[Scenario, ...] = (
         backends=("rosetta", "statix"),
         concurrent_entries=True,
     ),
+    *SHOWCASE_SCENARIOS,
+    *STATE_SCENARIOS,
 )

@@ -118,6 +118,8 @@ def run(scenario: Scenario, work_dir: Path) -> Result:
         )
         assert isinstance(program, LfProgram)
         program = finalize(program, needs)
+    if scenario.attributes or any(event.fields for event in scenario.inputs):
+        program = replace(program, preamble=(*program.preamble, "import json"))
     if scenario.attributes:
         observer = Reaction(
             triggers=("shutdown",),
@@ -133,7 +135,6 @@ def run(scenario: Scenario, work_dir: Path) -> Result:
         )
         program = replace(
             program,
-            preamble=(*program.preamble, "import json"),
             reactors=(*program.reactors[:-1], root),
         )
     src = work_dir / "src"
@@ -146,11 +147,18 @@ def run(scenario: Scenario, work_dir: Path) -> Result:
         )
     drivers: list[str] = []
     for index, event in enumerate(scenario.inputs):
+        payload = (
+            'sys.modules["types"].SimpleNamespace(**json.loads('
+            + json.dumps(json.dumps(dict(event.fields)))
+            + "))"
+            if event.fields
+            else "True"
+        )
         drivers.extend(
             (
                 f"  timer input_{index}({event.time_ms} msec)",
                 f"  reaction(input_{index}) -> m.{event.signal} {{=",
-                f"    m.{event.signal}.set(True)",
+                f"    m.{event.signal}.set({payload})",
                 "  =}",
             )
         )
@@ -176,7 +184,9 @@ def run(scenario: Scenario, work_dir: Path) -> Result:
         text=True,
         timeout=120,
     )
-    assert process.returncode == 0, process.stdout + process.stderr
+    failure = (
+        process.stdout + process.stderr if process.returncode != 0 else None
+    )
     entries: list[Entry] = []
     attributes: list[tuple[str, Scalar]] = []
     for line in process.stdout.splitlines():
@@ -187,4 +197,4 @@ def run(scenario: Scenario, work_dir: Path) -> Result:
         elif line.startswith("__SYSMLC_VALUE__ "):
             _, attr, value = line.split(" ", 2)
             attributes.append((attr, json.loads(value)))
-    return Result(tuple(entries), tuple(attributes))
+    return Result(tuple(entries), tuple(attributes), failure)

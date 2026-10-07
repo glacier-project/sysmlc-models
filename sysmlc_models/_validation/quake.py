@@ -95,7 +95,7 @@ def run(scenario: Scenario, work_dir: Path) -> Result:
         clock.time = time_ms / 1000
         for event in scenario.inputs:
             if event.time_ms == time_ms:
-                interpreter.queue(event.signal)
+                interpreter.queue(event.signal, **dict(event.fields))
         steps = interpreter.execute(max_steps=1000)
         assert len(steps) < 1000, "scenario exhausted its macrostep limit"
         entries.extend(
