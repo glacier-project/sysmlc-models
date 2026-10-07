@@ -49,6 +49,65 @@ The curated single-machine example list is exposed by
 `SM_EXAMPLES_DIR`); the showcase root by `sysmlc_models.showcase`
 (`SHOWCASE_DIR`).
 
+## Model validation
+
+Execution scenarios and their expectations live in
+`sysmlc_models.scenarios.SCENARIOS`. Each scenario names its model and
+element, input occurrences, logical-time horizon, and either an exact
+state-entry trace or required completion milestones. Scalar overrides and
+final values are part of the same contract. A successful compile or an
+exit code of zero cannot replace these observations.
+
+The optional adapters compile and execute Quake statecharts, Rosetta LF
+programs, or Statix C projects. The base catalog still has no dependencies.
+Select a backend with an option or `SYSMLC_VALIDATION_BACKEND`:
+
+```bash
+uv sync --extra dev --extra validation-quake
+uv run --extra validation-quake python -m sysmlc_models.validation \
+  --backend quake --work-dir /tmp/model-validation
+
+# Parameterized pytest results, one report for each scenario.
+SYSMLC_VALIDATION_BACKEND=quake uv run --extra dev \
+  --extra validation-quake pytest -m integration tests
+```
+
+Use `validation-rosetta` or `validation-statix` for the other targets.
+Rosetta requires Java and `lfc` (the model CI uses LF 0.11); Statix requires
+`cc` and CMake. Compiler-dependent checks require `SYSIDE_LICENSE_KEY`.
+Use a fresh work directory for each run to retain failed build artifacts.
+
+Model PRs run a Quake/Rosetta/Statix matrix; each backend's existing native
+suite imports this catalog and invokes the same validator against that
+backend. Unsupported scenarios are explicitly scoped in `backends`, such
+as the parallel-join case excluded from Quake. Expected behavior is defined
+by the model, rather than inferred from another backend's output.
+
+Furuta physics is checked here against simple structural data classes.
+The external implementation runs in the default unit suite; the embedded
+implementation is extracted by core in the compiler suite:
+
+```bash
+uv run --extra dev --extra compiler pytest -m compiler tests
+```
+
+The deterministic Furuta part also runs on Quake and Rosetta. Its monitor
+must complete within 15 logical seconds, and its failure state must never
+be entered. Small state-machine tests in the backend repositories verify
+their different policies for competing enabled transitions.
+
+| Test responsibility                                           | Repository   |
+| ------------------------------------------------------------- | ------------ |
+| Shared semantics, YAML configuration and override diagnostics | core         |
+| Model trajectories, physics, verdicts and logical deadlines   | models       |
+| Generated types, target code, runtime ABI and target policy   | each backend |
+
+Keep target-specific tests when their purpose is a generated artifact or
+native runtime contract. Remove a duplicated model execution only after
+the shared scenario verifies its behavior. Merge this API first, followed
+by core's test relocation and then the backend consumers; backend CI pins
+models to `main` until that first PR lands.
+
 ## Adding a model
 
 1. Create the model directory under the right corpus in `sysmlc_models/data/`.
