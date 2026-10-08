@@ -62,6 +62,7 @@ class Scenario:
         forbidden_states: States that must never be entered during the run.
         support: Optional Python support file within the bundled catalog.
         states: Exact leaf/completion sequence when only ordering is asserted.
+        alternative_states: Additional permitted complete state sequences.
         failure: Required runtime diagnostic for a negative model scenario.
     """
 
@@ -82,6 +83,7 @@ class Scenario:
     concurrent_entries: bool = False
     states: tuple[str, ...] = ()
     failure: str | None = None
+    alternative_states: tuple[tuple[str, ...], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -101,15 +103,20 @@ def assert_result(scenario: Scenario, result: Result) -> None:
         result: Observations produced by the target runtime.
 
     Raises:
-        AssertionError: If an entry is missing, unexpected or mistimed, or
-            a requested attribute does not have its expected final value.
+        AssertionError: If an alternative sequence is empty, an entry is
+            missing, unexpected or mistimed, or a requested attribute does
+            not have its expected final value.
     """
     assert (
         scenario.entries
         or scenario.states
+        or scenario.alternative_states
         or scenario.milestones
         or scenario.failure
     ), f"{scenario.name}: no observable success criterion"
+    assert all(scenario.alternative_states), (
+        f"{scenario.name}: alternative state sequences must not be empty"
+    )
     if scenario.failure is None:
         assert result.failure is None, (
             f"{scenario.name}: unexpected runtime failure {result.failure!r}"
@@ -121,10 +128,14 @@ def assert_result(scenario: Scenario, result: Result) -> None:
             f"{scenario.name}: expected failure {scenario.failure!r}, "
             f"observed {result.failure!r}"
         )
-    if scenario.states:
+    if scenario.states or scenario.alternative_states:
+        expected_sequences = (
+            (scenario.states,) if scenario.states else ()
+        ) + scenario.alternative_states
         actual_states = tuple(entry.state for entry in result.entries)
-        assert actual_states == scenario.states, (
-            f"{scenario.name}: expected states {scenario.states!r}, "
+        assert actual_states in expected_sequences, (
+            f"{scenario.name}: expected states matching one complete sequence "
+            f"in {expected_sequences!r}, "
             f"observed {actual_states!r}"
         )
     if scenario.entries:

@@ -19,7 +19,7 @@ package ChargingStation {
     // timeout and a bounded retry budget, a three-phase charging profile
     // (ramp-up / bulk / top-off) with thermal derating, and per-session
     // energy accounting. Protocol flavor: payload-coded responses,
-    // timeouts, retries, and priority-ordered guards.
+    // timeouts, retries, and overlapping transition guards.
     state def ChargingStationBehavior {
         port commPort;
 
@@ -101,9 +101,9 @@ package ChargingStation {
             do assign authRetries := authRetries + 1
             then faulted;
 
-        // Charging profile: ONE periodic after-self-loop per phase plus
-        // guarded eventless hand-offs (priority = declaration order, so
-        // thermal derating preempts the energy threshold in `bulk`).
+        // Charging profile: one periodic after-self-loop per phase plus
+        // guarded eventless hand-offs. The bulk exit guards may both hold;
+        // either cooling or topOff is then a permitted next state.
         transition first rampUp
             accept after 1 [s]
             do action {

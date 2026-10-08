@@ -26,12 +26,14 @@ def test_scenario_catalog_has_unique_names_and_valid_times() -> None:
         assert (
             scenario.entries
             or scenario.states
+            or scenario.alternative_states
             or scenario.milestones
             or scenario.failure
         )
         assert scenario.horizon_ms > 0
         assert set(scenario.backends) <= set(BACKENDS)
         assert scenario.backends
+        assert all(scenario.alternative_states)
         times = (
             *scenario.ticks_ms,
             *(event.time_ms for event in scenario.inputs),
@@ -116,6 +118,94 @@ def test_state_sequence_checks_order_and_multiplicity() -> None:
     ):
         with pytest.raises(AssertionError, match="expected states"):
             assert_result(scenario, Result(wrong))
+
+
+@pytest.mark.parametrize(
+    ("bulk_exit", "accepted"),
+    [
+        (("cooling", "cooling", "bulk", "topOff", "finishing", "idle"), True),
+        (("topOff", "finishing", "idle"), True),
+        (("cooling", "bulk", "topOff", "finishing", "idle"), False),
+        (("topOff", "cooling", "finishing", "idle"), False),
+        (("finishing", "topOff", "idle"), False),
+        (("topOff", "topOff", "finishing", "idle"), False),
+    ],
+)
+def test_charging_contract_checks_complete_paths(
+    bulk_exit: tuple[str, ...], accepted: bool
+) -> None:
+    scenario = next(
+        s for s in SCENARIOS if s.name == "charging-session-thermal-detour"
+    )
+    prefix = (
+        "idle",
+        "handshake::checkCable",
+        "handshake::lockConnector",
+        "handshake::done",
+        "authorizing",
+        "authRetry",
+        "authorizing",
+        "rampUp",
+        "rampUp",
+        "rampUp",
+        "bulk",
+        "bulk",
+        "bulk",
+    )
+    result = Result(
+        tuple(Entry(0, state) for state in (*prefix, *bulk_exit)),
+        (("sessions", 1),),
+    )
+    if accepted:
+        assert_result(scenario, result)
+    else:
+        with pytest.raises(AssertionError, match="expected states"):
+            assert_result(scenario, result)
+
+
+def test_state_alternative_keeps_final_value_checks() -> None:
+    scenario = Scenario(
+        "choice",
+        "model",
+        "Machine",
+        1000,
+        (),
+        states=("idle", "a"),
+        alternative_states=(("idle", "b"),),
+        attributes=(("count", 1),),
+    )
+    entries = (Entry(0, "idle"), Entry(100, "b"))
+    for attributes in ((), (("count", 0),)):
+        with pytest.raises(AssertionError, match=r"attribute|count="):
+            assert_result(scenario, Result(entries, attributes))
+
+
+def test_alternative_sequences_can_define_a_contract() -> None:
+    scenario = Scenario(
+        "choice",
+        "model",
+        "Machine",
+        1000,
+        (),
+        alternative_states=(("idle", "a"), ("idle", "b")),
+    )
+    assert_result(scenario, Result((Entry(0, "idle"), Entry(100, "b"))))
+    with pytest.raises(AssertionError, match="expected states"):
+        assert_result(scenario, Result(()))
+
+
+def test_state_sequence_rejects_an_empty_alternative() -> None:
+    scenario = Scenario(
+        "choice",
+        "model",
+        "Machine",
+        1000,
+        (),
+        states=("idle",),
+        alternative_states=((),),
+    )
+    with pytest.raises(AssertionError, match="must not be empty"):
+        assert_result(scenario, Result(()))
 
 
 def test_negative_scenario_requires_its_runtime_diagnostic() -> None:

@@ -46,6 +46,17 @@ _STATION_HANDSHAKE = (
     "handshake::done",
     "authorizing",
 )
+_STATION_CHARGE_PREFIX = (
+    *_STATION_HANDSHAKE,
+    "authRetry",
+    "authorizing",
+    "rampUp",
+    "rampUp",
+    "rampUp",
+    "bulk",
+    "bulk",
+    "bulk",
+)
 
 SHOWCASE_SCENARIOS: tuple[Scenario, ...] = (
     Scenario(
@@ -245,6 +256,9 @@ SHOWCASE_SCENARIOS: tuple[Scenario, ...] = (
         backends=("rosetta",),
         concurrent_entries=True,
     ),
+    # Two ramp-up ticks and two bulk ticks give energy=22, temperature=46.
+    # Both bulk exit guards hold (energy >= 19.8, temperature >= 45).
+    # Either complete branch is permitted; the model gives neither priority.
     Scenario(
         "charging-session-thermal-detour",
         "showcase/charging-station",
@@ -252,21 +266,16 @@ SHOWCASE_SCENARIOS: tuple[Scenario, ...] = (
         12000,
         (),
         states=(
-            *_STATION_HANDSHAKE,
-            "authRetry",
-            "authorizing",
-            "rampUp",
-            "rampUp",
-            "rampUp",
-            "bulk",
-            "bulk",
-            "bulk",
+            *_STATION_CHARGE_PREFIX,
             "cooling",
             "cooling",
             "bulk",
             "topOff",
             "finishing",
             "idle",
+        ),
+        alternative_states=(
+            (*_STATION_CHARGE_PREFIX, "topOff", "finishing", "idle"),
         ),
         inputs=(
             Input(200, "PlugIn"),
