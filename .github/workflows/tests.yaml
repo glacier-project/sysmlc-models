@@ -60,6 +60,7 @@ jobs:
       matrix:
         backend: [quake, rosetta, statix]
     env:
+      LF_VERSION: 0.13.0
       SYSIDE_LICENSE_KEY: ${{ secrets.SYSIDE_LICENSE_KEY }}
       SYSMLC_VALIDATION_BACKEND: ${{ matrix.backend }}
     steps:
@@ -79,9 +80,15 @@ jobs:
       run: |
         mkdir -p "$RUNNER_TEMP/lf-cli"
         curl -fL --retry 3 -o "$RUNNER_TEMP/lf-cli.tar.gz" \
-          https://github.com/lf-lang/lingua-franca/releases/download/v0.11.0/lf-cli-0.11.0-Linux-x86_64.tar.gz
+          "https://github.com/lf-lang/lingua-franca/releases/download/v${LF_VERSION}/lf-cli-${LF_VERSION}-Linux-x86_64.tar.gz"
         tar -xzf "$RUNNER_TEMP/lf-cli.tar.gz" -C "$RUNNER_TEMP/lf-cli" --strip-components=1
         echo "$RUNNER_TEMP/lf-cli/bin" >> "$GITHUB_PATH"
+    - name: Verify lfc version
+      if: matrix.backend == 'rosetta'
+      run: |
+        lfc_version="$(lfc --version)"
+        echo "$lfc_version"
+        test "$lfc_version" = "lfc ${LF_VERSION}"
     - name: Validate shared model contracts
       run: uv run --locked --extra dev --extra validation-${{ matrix.backend }} pytest -m integration tests --basetemp="$RUNNER_TEMP/model-validation"
     - name: Upload failed build artifacts
