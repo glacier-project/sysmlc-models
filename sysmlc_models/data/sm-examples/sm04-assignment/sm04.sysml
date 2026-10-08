@@ -35,7 +35,7 @@ package SM04 {
         state idle {
             entry action setup {
                 assign a := 1;
-                assign b := a + 2;
+                then assign b := a + 2;
             }
         }
         state running;

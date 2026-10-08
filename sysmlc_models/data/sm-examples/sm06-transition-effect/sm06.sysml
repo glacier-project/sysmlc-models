@@ -26,7 +26,7 @@ package SM06 {
         transition first idle
         do action {
             assign a := 1;
-            assign b := a + 2;
+            then assign b := a + 2;
         }
         then running;
     }
