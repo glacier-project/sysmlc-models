@@ -12,18 +12,18 @@ package SM07 {
         state a {
             exit action {
                 assign seq := seq + 1;
-                assign exitAt := seq;
+                then assign exitAt := seq;
             }
         }
         state b {
             entry action {
                 assign seq := seq + 1;
-                assign entryAt := seq;
+                then assign entryAt := seq;
             }
         }
         transition first a do action {
             assign seq := seq + 1;
-            assign effectAt := seq;
+            then assign effectAt := seq;
         } then b;
     }
 }
