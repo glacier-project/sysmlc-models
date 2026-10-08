@@ -4,6 +4,10 @@ from sysmlc_models._scenarios_showcase import SHOWCASE_SCENARIOS
 from sysmlc_models._scenarios_state import STATE_SCENARIOS
 from sysmlc_models.validation import Entry, Input, Milestone, Scenario
 
+_MICROWAVE_REGIONS = (
+    ("cooking::heating::heater", "cooking::heating::turntable"),
+)
+
 SCENARIOS: tuple[Scenario, ...] = (
     Scenario(
         "eventless-chain",
@@ -92,6 +96,7 @@ SCENARIOS: tuple[Scenario, ...] = (
         inputs=(Input(100, "StartCmd"),),
         backends=("rosetta", "statix"),
         concurrent_entries=True,
+        parallel_regions=_MICROWAVE_REGIONS,
     ),
     Scenario(
         "furuta-closed-loop",
@@ -122,6 +127,7 @@ SCENARIOS: tuple[Scenario, ...] = (
         ticks_ms=(500, 700),
         inputs=(Input(100, "StartCmd"), Input(200, "DoorOpen")),
         concurrent_entries=True,
+        parallel_regions=_MICROWAVE_REGIONS,
     ),
     Scenario(
         "microwave-pause-resume",
@@ -147,6 +153,7 @@ SCENARIOS: tuple[Scenario, ...] = (
         ),
         backends=("rosetta", "statix"),
         concurrent_entries=True,
+        parallel_regions=_MICROWAVE_REGIONS,
     ),
     *SHOWCASE_SCENARIOS,
     *STATE_SCENARIOS,

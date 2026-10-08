@@ -7,6 +7,7 @@ import importlib
 import os
 from collections import Counter
 from dataclasses import dataclass
+from itertools import permutations
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal, cast
 
@@ -52,8 +53,11 @@ class Scenario:
         ticks_ms: Absolute logical clock updates for the manually clocked
             targets. Include timer deadlines and observations before them.
         entries: Exact expected leaf/completion entries in execution order.
-        concurrent_entries: Allow different region ordering at the same
-            time. Entry times and multiplicity must still match exactly.
+        concurrent_entries: Allow interleaving between declared parallel
+            regions at the same time, preserving all other entry ordering.
+        parallel_regions: Groups of state paths naming sibling parallel
+            regions. Entries in different regions of a group can interleave;
+            entries inside one region or outside the group remain ordered.
         attributes: Expected scalar values at the end of execution.
         overrides: Scalar model configuration applied before compilation.
         backends: Targets supporting this scenario's constructs.
@@ -84,6 +88,7 @@ class Scenario:
     states: tuple[str, ...] = ()
     failure: str | None = None
     alternative_states: tuple[tuple[str, ...], ...] = ()
+    parallel_regions: tuple[tuple[str, ...], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -103,9 +108,10 @@ def assert_result(scenario: Scenario, result: Result) -> None:
         result: Observations produced by the target runtime.
 
     Raises:
-        AssertionError: If an alternative sequence is empty, an entry is
-            missing, unexpected or mistimed, or a requested attribute does
-            not have its expected final value.
+        AssertionError: If parallel regions are missing or ambiguous, an
+            alternative sequence is empty, an entry is missing, unexpected,
+            mistimed or out of order, or a requested attribute does not have
+            its expected final value.
     """
     assert (
         scenario.entries
@@ -117,6 +123,19 @@ def assert_result(scenario: Scenario, result: Result) -> None:
     assert all(scenario.alternative_states), (
         f"{scenario.name}: alternative state sequences must not be empty"
     )
+    assert scenario.concurrent_entries == bool(scenario.parallel_regions), (
+        f"{scenario.name}: concurrent_entries requires explicit parallel_regions"
+    )
+    for regions in scenario.parallel_regions:
+        assert (
+            len(regions) >= 2
+            and all(regions)
+            and len(set(regions)) == len(regions)
+            and all(
+                not first.startswith(f"{second}::")
+                for first, second in permutations(regions, 2)
+            )
+        ), f"{scenario.name}: parallel regions must be distinct sibling paths"
     if scenario.failure is None:
         assert result.failure is None, (
             f"{scenario.name}: unexpected runtime failure {result.failure!r}"
@@ -140,7 +159,9 @@ def assert_result(scenario: Scenario, result: Result) -> None:
         )
     if scenario.entries:
         matches = (
-            Counter(result.entries) == Counter(scenario.entries)
+            _matches_concurrent_entries(
+                scenario.entries, result.entries, scenario.parallel_regions
+            )
             if scenario.concurrent_entries
             else result.entries == scenario.entries
         )
@@ -163,6 +184,67 @@ def assert_result(scenario: Scenario, result: Result) -> None:
         assert actual[name] == expected, (
             f"{scenario.name}: {name}={actual[name]!r}, expected {expected!r}"
         )
+
+
+def _matches_concurrent_entries(
+    expected: tuple[Entry, ...],
+    actual: tuple[Entry, ...],
+    parallel_regions: tuple[tuple[str, ...], ...],
+) -> bool:
+    """Match a trace allowing only independent same-time entries to move.
+
+    Args:
+        expected: One permitted complete trace in execution order.
+        actual: Observed entries in execution order.
+        parallel_regions: Groups of paths naming sibling parallel regions.
+
+    Returns:
+        Whether the observed trace preserves every required ordering.
+    """
+    if Counter(actual) != Counter(expected):
+        return False
+    pending = list(expected)
+    for entry in actual:
+        position = pending.index(entry)
+        if any(
+            not _can_interleave(entry, previous, parallel_regions)
+            for previous in pending[:position]
+        ):
+            return False
+        pending.pop(position)
+    return True
+
+
+def _can_interleave(
+    first: Entry,
+    second: Entry,
+    parallel_regions: tuple[tuple[str, ...], ...],
+) -> bool:
+    """Return whether two entries belong to independent regions at one time."""
+    if first.time_ms != second.time_ms:
+        return False
+    for regions in parallel_regions:
+        first_region = _region(first.state, regions)
+        second_region = _region(second.state, regions)
+        if (
+            first_region is not None
+            and second_region is not None
+            and first_region != second_region
+        ):
+            return True
+    return False
+
+
+def _region(state: str, regions: tuple[str, ...]) -> str | None:
+    """Return the declared region containing a state path, if any."""
+    return next(
+        (
+            region
+            for region in regions
+            if state == region or state.startswith(f"{region}::")
+        ),
+        None,
+    )
 
 
 def validate_scenario(

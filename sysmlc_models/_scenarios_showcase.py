@@ -2,6 +2,16 @@
 
 from sysmlc_models.validation import Entry, Input, Milestone, Scenario
 
+_WORKCELL_REGIONS = (
+    (
+        "producing::machining::spindle",
+        "producing::machining::coolant",
+        "producing::machining::monitor",
+    ),
+)
+_REACTOR_REGIONS = (("reacting::agitation", "reacting::ventWatch"),)
+_CROSSING_REGIONS = (("closed::bellCycle", "closed::passage"),)
+
 _WORKCELL_START = (
     Entry(0, "cold"),
     Entry(100, "homing::axisX"),
@@ -173,6 +183,7 @@ SHOWCASE_SCENARIOS: tuple[Scenario, ...] = (
         overrides=(("batchSize", 2),),
         backends=("rosetta",),
         concurrent_entries=True,
+        parallel_regions=_WORKCELL_REGIONS,
     ),
     Scenario(
         "workcell-vibration-retry",
@@ -199,6 +210,7 @@ SHOWCASE_SCENARIOS: tuple[Scenario, ...] = (
         overrides=(("batchSize", 1),),
         backends=("rosetta",),
         concurrent_entries=True,
+        parallel_regions=_WORKCELL_REGIONS,
     ),
     Scenario(
         "batch-reactor-recipe",
@@ -226,6 +238,7 @@ SHOWCASE_SCENARIOS: tuple[Scenario, ...] = (
         overrides=_RECIPE_VALUES,
         backends=("rosetta",),
         concurrent_entries=True,
+        parallel_regions=_REACTOR_REGIONS,
     ),
     Scenario(
         "batch-reactor-overpressure",
@@ -255,6 +268,7 @@ SHOWCASE_SCENARIOS: tuple[Scenario, ...] = (
         overrides=_RECIPE_VALUES,
         backends=("rosetta",),
         concurrent_entries=True,
+        parallel_regions=_REACTOR_REGIONS,
     ),
     # Two ramp-up ticks and two bulk ticks give energy=22, temperature=46.
     # Both bulk exit guards hold (energy >= 19.8, temperature >= 45).
@@ -334,6 +348,7 @@ SHOWCASE_SCENARIOS: tuple[Scenario, ...] = (
         inputs=(Input(300, "TrainApproaching"), Input(4000, "TrainPassed")),
         backends=("rosetta",),
         concurrent_entries=True,
+        parallel_regions=_CROSSING_REGIONS,
     ),
     Scenario(
         "level-crossing-fault-reset",
@@ -366,6 +381,7 @@ SHOWCASE_SCENARIOS: tuple[Scenario, ...] = (
         ),
         backends=("rosetta",),
         concurrent_entries=True,
+        parallel_regions=_CROSSING_REGIONS,
     ),
     *(
         Scenario(

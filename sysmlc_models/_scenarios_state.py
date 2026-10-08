@@ -86,6 +86,7 @@ STATE_SCENARIOS: tuple[Scenario, ...] = (
             Entry(0, "sound::beeping"),
         ),
         concurrent_entries=True,
+        parallel_regions=(("lights", "sound"),),
     ),
     Scenario(
         "parallel-nested",
@@ -101,6 +102,7 @@ STATE_SCENARIOS: tuple[Scenario, ...] = (
         ),
         attributes=(("count", 1),),
         concurrent_entries=True,
+        parallel_regions=(("dual::lights", "dual::sound"),),
     ),
     Scenario(
         "nested-completion",
@@ -140,6 +142,7 @@ STATE_SCENARIOS: tuple[Scenario, ...] = (
         ),
         inputs=(Input(100, "EventA"), Input(200, "EventB")),
         concurrent_entries=True,
+        parallel_regions=(("working::a", "working::b"),),
     ),
     Scenario(
         "parallel-join-three",
@@ -161,6 +164,7 @@ STATE_SCENARIOS: tuple[Scenario, ...] = (
             Input(300, "EventC"),
         ),
         concurrent_entries=True,
+        parallel_regions=(("working::a", "working::b", "working::c"),),
     ),
     Scenario(
         "parallel-restart-clears-completion",
@@ -186,6 +190,7 @@ STATE_SCENARIOS: tuple[Scenario, ...] = (
             Input(500, "EventA"),
         ),
         concurrent_entries=True,
+        parallel_regions=(("working::a", "working::b"),),
     ),
     *(
         Scenario(
@@ -231,6 +236,7 @@ STATE_SCENARIOS: tuple[Scenario, ...] = (
         inputs=(Input(100, "EventA"), Input(200, "EventB")),
         forbidden_states=("finished",),
         concurrent_entries=True,
+        parallel_regions=(("working::a", "working::b"),),
     ),
     Scenario(
         "absolute-deadline",
