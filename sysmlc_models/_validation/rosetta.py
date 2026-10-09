@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
-from dataclasses import replace
+from dataclasses import asdict, replace
 from typing import TYPE_CHECKING
 
 from sysmlc.semantics.statemachine.driver import StateMachineDriver
@@ -17,9 +18,9 @@ from sysmlc_rosetta.codegen import PreambleNeeds
 from sysmlc_rosetta.program import LfProgram, Mode, Reaction, Reactor
 from sysmlc_rosetta.serialize import to_lf
 
-from sysmlc_models._validation import command, load
+from sysmlc_models._validation import command, constraint_violation, load
 from sysmlc_models.catalog import model_file
-from sysmlc_models.validation import Entry, Result
+from sysmlc_models.validation import ConstraintViolation, Entry, Result
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -30,9 +31,6 @@ if TYPE_CHECKING:
 
 
 class _ObservedBuilder(RosettaBuilder):
-    def __init__(self, name: str, needs: PreambleNeeds) -> None:
-        super().__init__(name, needs=needs)
-
     def _composite_reactor(
         self, scope: str, container: StateFact, *, is_root: bool
     ) -> Reactor:
@@ -114,7 +112,8 @@ def run(scenario: Scenario, work_dir: Path) -> Result:
         needs = PreambleNeeds()
         needs.types_module = f"{name}_types"
         program = StateMachineDriver(model).run(
-            scenario.element, _ObservedBuilder(name, needs)
+            scenario.element,
+            _ObservedBuilder(name, needs=needs, source_qn=scenario.element),
         )
         assert isinstance(program, LfProgram)
         program = finalize(program, needs)
@@ -185,7 +184,9 @@ def run(scenario: Scenario, work_dir: Path) -> Result:
         timeout=120,
     )
     failure = (
-        process.stdout + process.stderr if process.returncode != 0 else None
+        _failure(program, process.stdout + process.stderr)
+        if process.returncode != 0
+        else None
     )
     entries: list[Entry] = []
     attributes: list[tuple[str, Scalar]] = []
@@ -198,3 +199,56 @@ def run(scenario: Scenario, work_dir: Path) -> Result:
             _, attr, value = line.split(" ", 2)
             attributes.append((attr, json.loads(value)))
     return Result(tuple(entries), tuple(attributes), failure)
+
+
+def _failure(program: LfProgram, diagnostic: str) -> ConstraintViolation | str:
+    """Decode a generated assertion's check identity or retain a crash.
+
+    Args:
+        program: Compiled LF program containing source identities.
+        diagnostic: Captured diagnostics from the failed executable.
+
+    Returns:
+        A verified constraint identity, or the generic runtime diagnostic.
+
+    Raises:
+        AssertionError: If assertion identities are malformed, unknown or
+            refer to multiple different violated constraints.
+    """
+    payloads = re.findall(
+        r"^AssertionError: SysML constraint violated: (.+)$",
+        diagnostic,
+        re.MULTILINE,
+    )
+    if not payloads:
+        return diagnostic
+    known = {
+        (constraint.reactor, constraint.check_id): constraint
+        for constraint in program.constraints
+    }
+    failures: set[ConstraintViolation] = set()
+    for text in payloads:
+        try:
+            payload = json.loads(text)
+        except json.JSONDecodeError as error:
+            raise AssertionError("malformed constraint identity") from error
+        assert isinstance(payload, dict), "malformed constraint identity"
+        assert (
+            isinstance(payload.get("reactor"), str)
+            and type(payload.get("check_id")) is int
+        ), "malformed constraint identity"
+        key = (payload["reactor"], payload["check_id"])
+        constraint = known.get(key)
+        assert constraint is not None and payload == asdict(constraint), (
+            f"unknown constraint identity: {payload!r}"
+        )
+        failures.add(
+            constraint_violation(
+                constraint.behavior,
+                constraint.scope,
+                constraint.name,
+                constraint.check_id,
+            )
+        )
+    assert len(failures) == 1, "multiple different violated constraints"
+    return next(iter(failures))

@@ -1,6 +1,12 @@
 """Showcase behavior and testbench contracts, independent of target tests."""
 
-from sysmlc_models.validation import Entry, Input, Milestone, Scenario
+from sysmlc_models.validation import (
+    ConstraintViolation,
+    Entry,
+    Input,
+    Milestone,
+    Scenario,
+)
 
 _WORKCELL_REGIONS = (
     (
@@ -131,8 +137,9 @@ SHOWCASE_SCENARIOS: tuple[Scenario, ...] = (
         1000,
         (),
         overrides=(("setpoint", -10.0),),
-        backends=("rosetta",),
-        failure="setpointPositive",
+        failure=ConstraintViolation(
+            "setpointPositive", "Thermostat::ThermostatBehavior"
+        ),
     ),
     Scenario(
         "thermostat-driverless-system",

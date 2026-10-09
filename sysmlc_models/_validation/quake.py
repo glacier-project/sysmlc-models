@@ -7,6 +7,7 @@ import sys
 from typing import TYPE_CHECKING
 
 from sismic.clock import SimulatedClock
+from sismic.exceptions import InvariantError
 from sismic.interpreter import Interpreter
 from sysmlc.sysml.foreign_artifact.base import ForeignArtifact
 from sysmlc.sysml.loading import load_model
@@ -14,12 +15,14 @@ from sysmlc.sysml.queries import state_definitions
 from sysmlc_quake.builder import build_statechart_artifact
 from sysmlc_quake.runner import run_part_system
 
-from sysmlc_models._validation import load
+from sysmlc_models._validation import constraint_violation, load
 from sysmlc_models.catalog import model_file, model_path
 from sysmlc_models.validation import Entry, Result
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+    from sismic.model import MetaEvent
 
     from sysmlc_models.validation import Scenario
 
@@ -91,23 +94,40 @@ def run(scenario: Scenario, work_dir: Path) -> Result:
         | {event.time_ms for event in scenario.inputs}
     )
     entries: list[Entry] = []
-    for time_ms in times:
-        clock.time = time_ms / 1000
-        for event in scenario.inputs:
-            if event.time_ms == time_ms:
-                interpreter.queue(event.signal, **dict(event.fields))
-        steps = interpreter.execute(max_steps=1000)
-        assert len(steps) < 1000, "scenario exhausted its macrostep limit"
-        entries.extend(
-            Entry(round(step.time * 1000), state)
-            for step in steps
-            for state in step.entered_states
-            if state in paths
+
+    def observe(event: MetaEvent) -> None:
+        if event.name == "state entered" and event.state in paths:
+            entries.append(Entry(round(clock.time * 1000), event.state))
+
+    interpreter.attach(observe)
+    failure = None
+    try:
+        for time_ms in times:
+            clock.time = time_ms / 1000
+            for event in scenario.inputs:
+                if event.time_ms == time_ms:
+                    interpreter.queue(event.signal, **dict(event.fields))
+            steps = interpreter.execute(max_steps=1000)
+            assert len(steps) < 1000, "scenario exhausted its macrostep limit"
+    except InvariantError as error:
+        matching = tuple(
+            invariant
+            for invariant in artifact.invariants
+            if invariant.state == getattr(error.obj, "name", None)
+            and invariant.condition == error.condition
+        )
+        assert len(matching) == 1, f"unidentified constraint violation: {error}"
+        invariant = matching[0]
+        failure = constraint_violation(
+            scenario.element,
+            invariant.scope,
+            invariant.name,
+            invariant.check_id,
         )
     attributes = tuple(
         (name, interpreter.context[name]) for name, _ in scenario.attributes
     )
-    return Result(tuple(entries), attributes)
+    return Result(tuple(entries), attributes, failure)
 
 
 def check_initialization(model_name: str) -> None:
