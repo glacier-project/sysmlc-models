@@ -46,6 +46,31 @@ class Milestone:
 
 
 @dataclass(frozen=True)
+class ConstraintViolation:
+    """Identity of an asserted constraint reported as violated.
+
+    Attributes:
+        constraint: Declared SysML name, or ``None`` for an anonymous check.
+        scope: Qualified SysML scope containing the asserted constraint.
+        check_id: Declaration ordinal identifying an anonymous assertion.
+            Named assertions use their name and scope instead.
+    """
+
+    constraint: str | None
+    scope: str
+    check_id: int | None = None
+
+    def __post_init__(self) -> None:
+        if not self.scope or self.constraint == "":
+            raise ValueError("a constraint violation requires a source scope")
+        if self.constraint is None:
+            if type(self.check_id) is not int or self.check_id < 0:
+                raise ValueError("anonymous constraints require a check ID")
+        elif self.check_id is not None:
+            raise ValueError("named constraints use their name and scope")
+
+
+@dataclass(frozen=True)
 class Scenario:
     """A model execution with independently specified expected behavior.
 
@@ -67,7 +92,7 @@ class Scenario:
         support: Optional Python support file within the bundled catalog.
         states: Exact leaf/completion sequence when only ordering is asserted.
         alternative_states: Additional permitted complete state sequences.
-        failure: Required runtime diagnostic for a negative model scenario.
+        failure: Identity of the asserted constraint expected to be violated.
     """
 
     name: str
@@ -86,18 +111,18 @@ class Scenario:
     support: str | None = None
     concurrent_entries: bool = False
     states: tuple[str, ...] = ()
-    failure: str | None = None
+    failure: ConstraintViolation | None = None
     alternative_states: tuple[tuple[str, ...], ...] = ()
     parallel_regions: tuple[tuple[str, ...], ...] = ()
 
 
 @dataclass(frozen=True)
 class Result:
-    """Observed state entries and final scalar values from an actual run."""
+    """Observed entries, final scalar values and runtime failure from a run."""
 
     entries: tuple[Entry, ...]
     attributes: tuple[tuple[str, Scalar], ...] = ()
-    failure: str | None = None
+    failure: ConstraintViolation | str | None = None
 
 
 def assert_result(scenario: Scenario, result: Result) -> None:
@@ -111,7 +136,8 @@ def assert_result(scenario: Scenario, result: Result) -> None:
         AssertionError: If parallel regions are missing or ambiguous, an
             alternative sequence is empty, an entry is missing, unexpected,
             mistimed or out of order, or a requested attribute does not have
-            its expected final value.
+            its expected final value, or the reported failure does not match
+            the expected constraint violation.
     """
     assert (
         scenario.entries
@@ -142,7 +168,8 @@ def assert_result(scenario: Scenario, result: Result) -> None:
         )
     else:
         assert (
-            result.failure is not None and scenario.failure in result.failure
+            isinstance(result.failure, ConstraintViolation)
+            and result.failure == scenario.failure
         ), (
             f"{scenario.name}: expected failure {scenario.failure!r}, "
             f"observed {result.failure!r}"
@@ -280,8 +307,6 @@ def validate_scenario(
         raise ValueError("external support is configured for part scenarios")
     if backend == "statix" and any(event.fields for event in scenario.inputs):
         raise ValueError("Statix's host runner accepts payload-free inputs")
-    if scenario.failure is not None and backend != "rosetta":
-        raise ValueError("runtime failure scenarios require the LF adapter")
     adapter = importlib.import_module(f"sysmlc_models._validation.{backend}")
     run = cast("Callable[[Scenario, Path], Result]", adapter.run)
     work_dir.mkdir(parents=True, exist_ok=True)

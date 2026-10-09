@@ -4,13 +4,14 @@ from __future__ import annotations
 
 import json
 import re
+import subprocess
 from typing import TYPE_CHECKING
 
 from sysmlc.backends.base import OutputOptions
 from sysmlc_statix.backend import StatixBackend
 from sysmlc_statix.builder import build_statix
 
-from sysmlc_models._validation import command, load
+from sysmlc_models._validation import command, constraint_violation, load
 from sysmlc_models.validation import Entry, Result
 
 if TYPE_CHECKING:
@@ -58,32 +59,71 @@ def run(scenario: Scenario, work_dir: Path) -> Result:
             if event.time_ms == time_ms:
                 arguments.append(event.signal)
                 command_times.append(time_ms)
-    output = command(
-        [str(build / f"{program.prefix}_runner"), *arguments], work_dir
+    process = subprocess.run(
+        [str(build / f"{program.prefix}_runner"), *arguments],
+        cwd=work_dir,
+        capture_output=True,
+        text=True,
+        timeout=120,
     )
+    output = process.stdout
     entries: list[Entry] = []
     pending: list[str] = []
     statuses: list[str] = []
+    failure = None
+    last_guard: tuple[str, str, str] | None = None
     for line in output.splitlines():
+        guard = re.fullmatch(
+            r"  trace: guard=(\S+) state=(\S+) result=(true|false)", line
+        )
+        if guard is not None:
+            last_guard = (guard[1], guard[2], guard[3])
+            continue
         match = re.fullmatch(r"  trace: enter state=(\S+) slot=\d+", line)
         if match is not None and match[1] in paths:
             pending.append(match[1])
         elif "status=" in line:
             status = re.search(r"\bstatus=(\S+)", line)
             assert status is not None, line
-            assert status[1] in {"SC_STATUS_OK", "SC_STATUS_NO_TRANSITION"}, (
-                line
-            )
+            assert failure is None, "runner continued after a violation"
+            if status[1] == "SC_STATUS_CONSTRAINT_VIOLATED":
+                assert process.returncode == 1, output + process.stderr
+                assert last_guard is not None and last_guard[2] == "false", (
+                    "constraint violation has no failed check identity"
+                )
+                matching = tuple(
+                    invariant
+                    for invariant in program.invariants
+                    if invariant.guard == last_guard[0]
+                    and (invariant.scope or "SC_STATE_INVALID") == last_guard[1]
+                )
+                assert len(matching) == 1, "unknown constraint check identity"
+                invariant = matching[0]
+                assert invariant.check_id is not None
+                failure = constraint_violation(
+                    scenario.element,
+                    invariant.scope or "",
+                    invariant.name,
+                    invariant.check_id,
+                )
+            else:
+                assert status[1] in {
+                    "SC_STATUS_OK",
+                    "SC_STATUS_NO_TRANSITION",
+                }, line
             assert len(statuses) < len(command_times), output
             time_ms = command_times[len(statuses)]
             entries.extend(Entry(time_ms, state) for state in pending)
             pending.clear()
             statuses.append(line)
-    assert len(statuses) == len(command_times), output
+            last_guard = None
+    if failure is None:
+        assert process.returncode == 0, output + process.stderr
+        assert len(statuses) == len(command_times), output
     assert not pending, output
     attributes: list[tuple[str, Scalar]] = []
     for name, _ in scenario.attributes:
         match = re.search(rf"\bctx\.{re.escape(name)}=(\S+)", statuses[-1])
         assert match is not None, f"missing context value {name}: {output}"
         attributes.append((name, json.loads(match[1])))
-    return Result(tuple(entries), tuple(attributes))
+    return Result(tuple(entries), tuple(attributes), failure)

@@ -11,6 +11,7 @@ from sysmlc.sysml.loading import load_model
 from sysmlc.values import configure_model
 
 from sysmlc_models.catalog import model_path
+from sysmlc_models.validation import ConstraintViolation
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -90,3 +91,26 @@ def command(args: list[str], work_dir: Path, timeout: int = 120) -> str:
         f"{result.stdout}\n{result.stderr}"
     )
     return result.stdout
+
+
+def constraint_violation(
+    behavior_qn: str, scope: str, name: str | None, check_id: int
+) -> ConstraintViolation:
+    """Qualify a runtime check's preserved SysML source identity.
+
+    Args:
+        behavior_qn: Qualified name of the original SysML state definition.
+        scope: Neutral SysML state path, empty for the behavior root.
+        name: Declared constraint name, or ``None`` for an anonymous check.
+        check_id: Constraint ordinal within the compiled behavior.
+
+    Returns:
+        The qualified constraint identity for comparison with the contract.
+
+    Raises:
+        ValueError: If the source scope or anonymous check ID is invalid.
+    """
+    qualified_scope = f"{behavior_qn}::{scope}" if scope else behavior_qn
+    return ConstraintViolation(
+        name, qualified_scope, check_id if name is None else None
+    )

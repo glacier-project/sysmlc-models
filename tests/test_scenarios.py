@@ -10,6 +10,7 @@ import pytest
 from sysmlc_models.scenarios import SCENARIOS
 from sysmlc_models.validation import (
     BACKENDS,
+    ConstraintViolation,
     Entry,
     Milestone,
     Result,
@@ -416,23 +417,26 @@ def test_state_sequence_rejects_an_empty_alternative() -> None:
         assert_result(scenario, Result(()))
 
 
-def test_negative_scenario_requires_its_runtime_diagnostic() -> None:
+def test_negative_scenario_requires_its_constraint_identity() -> None:
+    expected = ConstraintViolation("setpointPositive", "Machine")
     scenario = Scenario(
         "bad-setpoint",
         "model",
         "Machine",
         1000,
         (),
-        backends=("rosetta",),
-        failure="setpointPositive",
+        failure=expected,
     )
-    assert_result(
-        scenario, Result((), failure="constraint setpointPositive violated")
-    )
+    assert_result(scenario, Result((), failure=expected))
     for failure in (
         None,
         "ModuleNotFoundError",
         "constraint tempBand violated",
+        "ModuleNotFoundError: setpointPositive",
+        "constraint setpointPositive violated",
+        ConstraintViolation("tempBand", "Machine"),
+        ConstraintViolation("setpointPositive", "Machine::idle"),
+        ConstraintViolation(None, "Machine", 0),
     ):
         with pytest.raises(AssertionError, match="expected failure"):
             assert_result(scenario, Result((), failure=failure))
@@ -442,6 +446,33 @@ def test_positive_scenario_rejects_a_runtime_failure() -> None:
     scenario = Scenario("ok", "model", "Machine", 1000, (Entry(0, "done"),))
     with pytest.raises(AssertionError, match="unexpected runtime failure"):
         assert_result(scenario, Result(scenario.entries, failure="crashed"))
+    with pytest.raises(AssertionError, match="unexpected runtime failure"):
+        assert_result(
+            scenario,
+            Result(
+                scenario.entries,
+                failure=ConstraintViolation("limit", "Machine"),
+            ),
+        )
+
+
+def test_anonymous_constraint_identity_cannot_match_a_declared_name() -> None:
+    scenario = Scenario(
+        "anonymous",
+        "model",
+        "Machine",
+        1000,
+        (),
+        failure=ConstraintViolation(None, "Machine", 0),
+    )
+    assert_result(scenario, Result((), failure=scenario.failure))
+    for observed in (
+        ConstraintViolation("constraint0", "Machine"),
+        ConstraintViolation(None, "Machine", 1),
+        ConstraintViolation(None, "Machine::idle", 0),
+    ):
+        with pytest.raises(AssertionError, match="expected failure"):
+            assert_result(scenario, Result((), failure=observed))
 
 
 @pytest.mark.parametrize("entries", [(), (Entry(15001, "monitor::done"),)])
