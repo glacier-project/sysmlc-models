@@ -636,7 +636,7 @@ dependencies = [
 [[package]]
 name = "sysmlc-statix"
 version = "0.0.0"
-source = { git = "https://github.com/glacier-project/sysmlc-statix?branch=main#71fd486808cbd1bc6e35d4e1f19cb1a62d1d02d0" }
+source = { git = "https://github.com/glacier-project/sysmlc-statix?branch=main#0e1b88365b27d4ea20654699168a0f347b1a2228" }
 dependencies = [
     { name = "jinja2" },
     { name = "syside" },
