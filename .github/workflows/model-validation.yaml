@@ -1,0 +1,96 @@
+name: Model validation
+
+on:
+  push:
+    branches:
+    - main
+    paths-ignore:
+    - docs/**
+    - README.md
+    - LICENSE
+    - AGENTS.md
+    - CLAUDE.md
+    - .github/workflows/notify-sysmlc.yml
+  pull_request:
+    branches:
+    - main
+    paths-ignore:
+    - docs/**
+    - README.md
+    - LICENSE
+    - AGENTS.md
+    - CLAUDE.md
+    - .github/workflows/notify-sysmlc.yml
+
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  compiler:
+    name: Embedded model support
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SYSIDE_LICENSE_KEY: ${{ secrets.SYSIDE_LICENSE_KEY }}
+    steps:
+    - uses: actions/checkout@v6
+    - uses: ./.github/actions/setup-python-uv
+      with:
+        python-version: '3.12'
+        git-repos-token: ${{ secrets.GH_REPOS_READ_TOKEN }}
+    - name: Validate embedded Python physics
+      run: uv run --locked --extra dev --extra compiler pytest -m compiler tests
+
+  models:
+    name: Model scenarios (${{ matrix.backend }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        backend: [quake, rosetta, statix]
+    env:
+      LF_VERSION: 0.13.0
+      SYSIDE_LICENSE_KEY: ${{ secrets.SYSIDE_LICENSE_KEY }}
+      SYSMLC_VALIDATION_BACKEND: ${{ matrix.backend }}
+    steps:
+    - uses: actions/checkout@v6
+    - uses: ./.github/actions/setup-python-uv
+      with:
+        python-version: '3.12'
+        git-repos-token: ${{ secrets.GH_REPOS_READ_TOKEN }}
+    - name: Set up Java
+      if: matrix.backend == 'rosetta'
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: '17'
+    - name: Install certified LF compiler
+      if: matrix.backend == 'rosetta'
+      run: |
+        mkdir -p "$RUNNER_TEMP/lf-cli"
+        curl -fL --retry 3 -o "$RUNNER_TEMP/lf-cli.tar.gz" \
+          "https://github.com/lf-lang/lingua-franca/releases/download/v${LF_VERSION}/lf-cli-${LF_VERSION}-Linux-x86_64.tar.gz"
+        tar -xzf "$RUNNER_TEMP/lf-cli.tar.gz" -C "$RUNNER_TEMP/lf-cli" --strip-components=1
+        echo "$RUNNER_TEMP/lf-cli/bin" >> "$GITHUB_PATH"
+    - name: Verify lfc version
+      if: matrix.backend == 'rosetta'
+      run: |
+        lfc_version="$(lfc --version)"
+        echo "$lfc_version"
+        test "$lfc_version" = "lfc ${LF_VERSION}"
+    - name: Validate shared model contracts
+      run: uv run --locked --extra dev --extra validation-${{ matrix.backend }} pytest -m integration tests --basetemp="$RUNNER_TEMP/model-validation"
+    - name: Upload failed build artifacts
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: model-validation-${{ matrix.backend }}
+        path: ${{ runner.temp }}/model-validation/
+        if-no-files-found: ignore
