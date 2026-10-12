@@ -26,4 +26,10 @@ runs:
     env:
       GIT_REPOS_TOKEN: ${{ inputs.git-repos-token }}
     run: |
-      git config --global url."https://x-access-token:${GIT_REPOS_TOKEN}@github.com/glacier-project/".insteadOf "https://github.com/glacier-project/"
+      # Keep credentials in this job's environment on persistent runners.
+      git_config_index=${GIT_CONFIG_COUNT:-0}
+      {
+        echo "GIT_CONFIG_COUNT=$((git_config_index + 1))"
+        echo "GIT_CONFIG_KEY_${git_config_index}=url.https://x-access-token:${GIT_REPOS_TOKEN}@github.com/glacier-project/.insteadOf"
+        echo "GIT_CONFIG_VALUE_${git_config_index}=https://github.com/glacier-project/"
+      } >> "$GITHUB_ENV"

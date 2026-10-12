@@ -34,7 +34,9 @@ permissions:
 jobs:
   compiler:
     name: Embedded model support
-    runs-on: ubuntu-latest
+    runs-on: >-
+      ${{ fromJSON(github.event.pull_request.head.repo.fork != true
+        && vars.CI_RUNS_ON || '"ubuntu-latest"') }}
     timeout-minutes: 15
     env:
       SYSIDE_LICENSE_KEY: ${{ secrets.SYSIDE_LICENSE_KEY }}
@@ -49,7 +51,9 @@ jobs:
 
   models:
     name: Model scenarios (${{ matrix.backend }})
-    runs-on: ubuntu-latest
+    runs-on: >-
+      ${{ fromJSON(github.event.pull_request.head.repo.fork != true
+        && vars.CI_RUNS_ON || '"ubuntu-latest"') }}
     timeout-minutes: 20
     strategy:
       fail-fast: false
