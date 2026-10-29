@@ -57,14 +57,15 @@ package VendingMachine {
     }
 
     // Testbench: inserts two Coin(2) payments (totalling 4 >= price 3) then
-    // a Selection("cola") at relative 0.1 s intervals.  Expects Dispensed
-    // within 5 s of the selection; missing it latches verdict := 1, which
-    // violates `testPassed` and aborts with exit 1.
+    // a Selection(Product::cola) at relative 0.1 s intervals.  Expects
+    // Dispensed within 5 s of the selection; missing it latches
+    // verdict := 1, which violates `testPassed` and aborts with exit 1.
     //
     // Stimulus chain (logical time):
     //   0.1 s  coin1Wait entry → send Coin(2)  [credit 2 < 3, plant stays idle]
     //   0.2 s  coin2Wait entry → send Coin(2)  [credit 4 >= 3, plant → paid]
-    //   0.3 s  dispenseWait entry → send Selection("cola")  [plant dispenses]
+    //   0.3 s  dispenseWait entry → send Selection(Product::cola)
+    //          [plant dispenses]
     //   plant sends Dispensed(…) via commPort → accepted in dispenseWait
     //
     // Selection is sent from dispenseWait's entry so the mode is already
@@ -87,10 +88,11 @@ package VendingMachine {
         state coin2Wait {
             entry send new Coin(2) via commPort;
         }
-        // Entry: send Selection("cola") -- plant is in paid, processes the
-        // selection, and sends Dispensed back via commPort at this same tag.
+        // Entry: send Selection(Product::cola) -- plant is in paid, processes
+        // the selection, and sends Dispensed back via commPort at this same
+        // tag.
         state dispenseWait {
-            entry send new Selection("cola") via commPort;
+            entry send new Selection(Product::cola) via commPort;
         }
         state fail {
             entry assign verdict := 1;
