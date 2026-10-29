@@ -16,10 +16,10 @@ package FurutaPendulum {
     // into the backend's generated companion types module).
     // Default: pendulum hanging DOWN (theta = pi ≈ 3.14159, velocities zero).
     attribute def PendulumState {
-        attribute theta   : Real = 3.14159;
-        attribute d_theta : Real = 0.0;
-        attribute phi     : Real = 0.0;
-        attribute d_phi   : Real = 0.0;
+        attribute theta   : Real default 3.14159;
+        attribute d_theta : Real default 0.0;
+        attribute phi     : Real default 0.0;
+        attribute d_phi   : Real default 0.0;
     }
 
     // Signal: simulator → controller (4-field sensor reading).
