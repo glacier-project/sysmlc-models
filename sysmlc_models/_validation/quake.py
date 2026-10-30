@@ -12,6 +12,7 @@ from sismic.interpreter import Interpreter
 from sysmlc.sysml.foreign_artifact.base import ForeignArtifact
 from sysmlc.sysml.loading import load_model
 from sysmlc.sysml.queries import state_definitions
+from sysmlc_quake import payload_event
 from sysmlc_quake.builder import build_statechart_artifact
 from sysmlc_quake.runner import run_part_system
 
@@ -107,8 +108,10 @@ def run(scenario: Scenario, work_dir: Path) -> Result:
             for event in scenario.inputs:
                 if event.time_ms == time_ms:
                     interpreter.queue(
-                        artifact.resolve_external(event.signal),
-                        **dict(event.fields),
+                        payload_event(
+                            artifact.resolve_external(event.signal),
+                            dict(event.fields),
+                        )
                     )
             steps = interpreter.execute(max_steps=1000)
             assert len(steps) < 1000, "scenario exhausted its macrostep limit"
