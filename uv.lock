@@ -605,7 +605,7 @@ provides-extras = ["compiler", "validation-quake", "validation-rosetta", "valida
 [[package]]
 name = "sysmlc-quake"
 version = "0.0.0"
-source = { git = "https://github.com/glacier-project/sysmlc-quake?branch=main#183e3649b28fd94faf999e7f01fe62f2fdab8b39" }
+source = { git = "https://github.com/glacier-project/sysmlc-quake?branch=main#d8e903c3cb8e423f21189412fedcee915a11561d" }
 dependencies = [
     { name = "sismic" },
     { name = "syside" },
