@@ -307,4 +307,28 @@ STATE_SCENARIOS: tuple[Scenario, ...] = (
             ("marker", "MachineMarker", ()),
         )
     ),
+    *(
+        Scenario(
+            f"typed-signal-{case}",
+            "sm-examples/sm20-typed-signals",
+            f"SM20::Machine{machine}",
+            1000,
+            tuple(Entry(0, state) for state in ("idle", "armed", *targets)),
+            attributes=(("count", count), ("captured", captured)),
+            backends=("quake", "rosetta"),
+        )
+        for case, machine, targets, count, captured in (
+            ("exact", "Exact", ("received",), 1, 41),
+            ("unrelated", "Unrelated", (), 0, -1),
+            ("direct-subtype", "DirectSubtype", ("received",), 1, 41),
+            ("transitive-subtype", "TransitiveSubtype", ("received",), 1, 41),
+            ("base-to-subtype", "BaseToSubtype", (), 0, -1),
+            ("alias", "Alias", ("received",), 1, 41),
+            ("base-first", "BaseFirst", ("firstSelected",), 1, 41),
+            ("subtype-first", "SubtypeFirst", ("firstSelected",), 1, 41),
+            ("false-guard", "FalseGuard", ("secondSelected",), 1, 41),
+            ("alias-bindings", "AliasBindings", ("received",), 1, 141),
+            ("diamond", "Diamond", ("received",), 1, 41),
+        )
+    ),
 )

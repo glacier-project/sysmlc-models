@@ -11,6 +11,7 @@ from dataclasses import asdict, replace
 from typing import TYPE_CHECKING
 
 from sysmlc.semantics.statemachine.driver import StateMachineDriver
+from sysmlc.semantics.statemachine.signals import SignalCatalog
 from sysmlc.sysml.foreign_artifact.base import ForeignArtifact
 from sysmlc_rosetta.backend import RosettaBackend
 from sysmlc_rosetta.builder import RosettaBuilder, finalize
@@ -109,7 +110,7 @@ def run(scenario: Scenario, work_dir: Path) -> Result:
             ),
         )
     else:
-        needs = PreambleNeeds()
+        needs = PreambleNeeds(catalog=SignalCatalog(model, [scenario.element]))
         needs.types_module = f"{name}_types"
         program = StateMachineDriver(model).run(
             scenario.element,
@@ -146,6 +147,7 @@ def run(scenario: Scenario, work_dir: Path) -> Result:
         )
     drivers: list[str] = []
     for index, event in enumerate(scenario.inputs):
+        signal = program.resolve_signal(event.signal)
         payload = (
             'sys.modules["types"].SimpleNamespace(**json.loads('
             + json.dumps(json.dumps(dict(event.fields)))
@@ -156,8 +158,8 @@ def run(scenario: Scenario, work_dir: Path) -> Result:
         drivers.extend(
             (
                 f"  timer input_{index}({event.time_ms} msec)",
-                f"  reaction(input_{index}) -> m.{event.signal} {{=",
-                f"    m.{event.signal}.set({payload})",
+                f"  reaction(input_{index}) -> m.{signal} {{=",
+                f"    m.{signal}.set({payload})",
                 "  =}",
             )
         )
