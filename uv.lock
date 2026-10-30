@@ -542,7 +542,7 @@ wheels = [
 [[package]]
 name = "sysmlc"
 version = "0.0.0"
-source = { git = "https://github.com/glacier-project/sysmlc-core?branch=main#0a3137ddc7b5d7efefd26a6522c623254149ecff" }
+source = { git = "https://github.com/glacier-project/sysmlc-core?branch=main#d84d722af65bc1089a5dce3906474850fafe02d7" }
 dependencies = [
     { name = "pyyaml" },
     { name = "syside" },
@@ -605,7 +605,7 @@ provides-extras = ["compiler", "validation-quake", "validation-rosetta", "valida
 [[package]]
 name = "sysmlc-quake"
 version = "0.0.0"
-source = { git = "https://github.com/glacier-project/sysmlc-quake?branch=main#2cf6e35a85ff0f4aef24b943af53aabfe2747e45" }
+source = { git = "https://github.com/glacier-project/sysmlc-quake?branch=main#183e3649b28fd94faf999e7f01fe62f2fdab8b39" }
 dependencies = [
     { name = "sismic" },
     { name = "syside" },
@@ -615,7 +615,7 @@ dependencies = [
 [[package]]
 name = "sysmlc-rosetta"
 version = "0.0.0"
-source = { git = "https://github.com/glacier-project/sysmlc-rosetta?branch=main#fb6e4c86a4aba3148688202aba271d591b645bdb" }
+source = { git = "https://github.com/glacier-project/sysmlc-rosetta?branch=main#3c2465d598f59d50e5fdaf8fabcedb38b6d31af2" }
 dependencies = [
     { name = "syside" },
     { name = "sysmlc" },
