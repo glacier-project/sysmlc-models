@@ -258,4 +258,53 @@ STATE_SCENARIOS: tuple[Scenario, ...] = (
         backends=("rosetta", "statix"),
         forbidden_states=("running",),
     ),
+    *(
+        Scenario(
+            f"payload-{case}",
+            "sm-examples/sm19-payload-construction",
+            f"SM19::{machine}",
+            1000,
+            (Entry(0, "idle"), Entry(0, "armed"), Entry(0, "received")),
+            attributes=values,
+            backends=("quake", "rosetta"),
+        )
+        for case, machine, values in (
+            (
+                "positional",
+                "MachinePositional",
+                (("capturedX", 13), ("capturedY", 42)),
+            ),
+            (
+                "named-partial",
+                "MachineNamedPartial",
+                (("capturedX", 7), ("capturedY", 42)),
+            ),
+            (
+                "defaults",
+                "MachineDefaults",
+                (("capturedX", 7), ("capturedY", 9)),
+            ),
+            (
+                "inherited-defaults",
+                "MachineInheritedDefaults",
+                (("capturedX", 7), ("capturedY", 9)),
+            ),
+            (
+                "inherited-named",
+                "MachineInheritedNamed",
+                (("capturedX", 42), ("capturedY", 9)),
+            ),
+            (
+                "redefined-default",
+                "MachineRedefinedDefault",
+                (("capturedX", 11), ("capturedY", 9)),
+            ),
+            (
+                "send-time-argument",
+                "MachineSendTimeArgument",
+                (("capturedX", 7), ("capturedY", 42), ("current", 100)),
+            ),
+            ("marker", "MachineMarker", ()),
+        )
+    ),
 )
