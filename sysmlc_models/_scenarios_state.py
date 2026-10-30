@@ -331,4 +331,51 @@ STATE_SCENARIOS: tuple[Scenario, ...] = (
             ("diamond", "Diamond", ("received",), 1, 41),
         )
     ),
+    *(
+        Scenario(
+            f"payload-envelope-{case}",
+            "sm-examples/sm21-payload-envelope",
+            f"SM21::Machine{machine}",
+            1000,
+            tuple(Entry(0, state) for state in ("idle", "armed", "received")),
+            attributes=(("captured", expected), ("count", 1)),
+            backends=("quake", "rosetta"),
+        )
+        for case, machine, expected in (
+            ("name", "Name", "pump-1"),
+            ("data", "Data", 42),
+            ("delay", "Delay", 5),
+        )
+    ),
+    Scenario(
+        "payload-envelope-combined",
+        "sm-examples/sm21-payload-envelope",
+        "SM21::MachineCombined",
+        1000,
+        tuple(Entry(0, state) for state in ("idle", "armed", "received")),
+        attributes=(("capturedName", "pump-1"), ("total", 65), ("count", 1)),
+        backends=("quake", "rosetta"),
+    ),
+    Scenario(
+        "payload-envelope-external",
+        "sm-examples/sm21-payload-envelope",
+        "SM21::MachineExternal",
+        1000,
+        (Entry(0, "armed"), Entry(100, "received")),
+        attributes=(("capturedName", "valve-2"), ("total", 165), ("count", 1)),
+        inputs=(
+            Input(
+                100,
+                "SM21::Complete",
+                (
+                    ("name", "valve-2"),
+                    ("data", 142),
+                    ("delay", 5),
+                    ("payload", 7),
+                    ("_sysmlc_payload", 11),
+                ),
+            ),
+        ),
+        backends=("quake", "rosetta"),
+    ),
 )
