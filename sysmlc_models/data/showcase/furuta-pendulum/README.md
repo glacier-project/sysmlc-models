@@ -32,5 +32,9 @@ sysmlc rosetta build showcase/furuta-pendulum/nondeterministic \
 
 The second command uses the nondeterministic model's embedded Python textual
 representations. Supplying `--python showcase/furuta-pendulum/furuta_physics.py`
-instead exercises the external-module path. `furuta_physics.c` is retained as
-the reference C implementation; it is not consumed by the Python backends.
+instead exercises the external-module path.
+
+`furuta_physics.c` and `furuta_physics.h` are the same physics in C, for
+rosetta's C target (`--target c --c furuta_physics.c --c_h furuta_physics.h`).
+They use the payload types of the header rosetta generates for the system,
+`furutaSystem_types.h`.

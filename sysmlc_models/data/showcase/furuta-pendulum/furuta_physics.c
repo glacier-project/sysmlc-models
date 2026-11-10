@@ -1,6 +1,9 @@
-#include "statix_extern.h"
-#include "furuta_pendulum/pendulum_controller.h"
-#include "furuta_pendulum/pendulum_simulation.h"
+/* Furuta pendulum physics for C backends, a port of furuta_physics.py.
+ *
+ * Backs the model's calc defs by their plain names. The payload types come
+ * from the header rosetta's C target generates for furutaSystem. */
+#include "furuta_physics.h"
+
 #include <math.h>
 
 #ifndef M_PI
@@ -44,7 +47,7 @@ static double _sign(double x)
     return (double)((x > 0.0) - (x < 0.0));
 }
 
-static double restrict_angle(double theta)
+double restrict_angle(double theta)
 {
     return (fmod(fabs(theta) + M_PI, 2.0 * M_PI) - M_PI) * _sign(theta);
 }
@@ -59,8 +62,8 @@ static double _energy(double theta, double d_theta)
  * --------------------------------------------------------------------------- */
 
 /* FurutaPendulum::step */
-furuta_pendulum_pendulum_simulation_pendulum_state_t furuta_pendulum_step(
-    furuta_pendulum_pendulum_simulation_pendulum_state_t x,
+furuta_pendulum_pendulum_state_t step(
+    furuta_pendulum_pendulum_state_t x,
     double u,
     double dt)
 {
@@ -93,7 +96,7 @@ furuta_pendulum_pendulum_simulation_pendulum_state_t furuta_pendulum_step(
         + ALPHA * G * u
     );
 
-    furuta_pendulum_pendulum_simulation_pendulum_state_t next_x;
+    furuta_pendulum_pendulum_state_t next_x;
     next_x.theta = x.theta + x0_dot * dt;
     next_x.d_theta = x.d_theta + x1_dot * dt;
     next_x.phi = x.phi + x2_dot * dt;
@@ -102,7 +105,7 @@ furuta_pendulum_pendulum_simulation_pendulum_state_t furuta_pendulum_step(
 }
 
 /* FurutaPendulum::swingup_torque */
-double furuta_pendulum_swingup_torque(furuta_pendulum_pendulum_controller_angle_reading_t r)
+double swingup_torque(furuta_pendulum_angle_reading_t r)
 {
     double th = restrict_angle(r.theta);
     double e = _energy(th, r.d_theta);
@@ -113,14 +116,14 @@ double furuta_pendulum_swingup_torque(furuta_pendulum_pendulum_controller_angle_
 }
 
 /* FurutaPendulum::catch_torque */
-double furuta_pendulum_catch_torque(furuta_pendulum_pendulum_controller_angle_reading_t r)
+double catch_torque(furuta_pendulum_angle_reading_t r)
 {
     double th = restrict_angle(r.theta);
     return -1.0 * (th * CI1 + r.d_theta * CI2 + (r.phi - PHI2) * CI3 + r.d_phi * CI4);
 }
 
 /* FurutaPendulum::stabilize_torque */
-double furuta_pendulum_stabilize_torque(furuta_pendulum_pendulum_controller_angle_reading_t r)
+double stabilize_torque(furuta_pendulum_angle_reading_t r)
 {
     double th = restrict_angle(r.theta);
     return -1.0 * (th * SI1 + r.d_theta * SI2 + (r.phi - PHI0) * SI3 + r.d_phi * SI4);
