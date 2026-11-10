@@ -74,9 +74,10 @@ SYSMLC_VALIDATION_BACKEND=quake uv run --extra dev \
   --extra validation-quake pytest -m integration tests
 ```
 
-Use `validation-rosetta` or `validation-statix` for the other targets.
-Rosetta requires Java and `lfc` (the model CI uses LF 0.11); Statix requires
-`cc` and CMake. Compiler-dependent checks require `SYSIDE_LICENSE_KEY`.
+Use `validation-rosetta` or `validation-statix` for the other targets;
+`--backend rosetta-c` runs Rosetta's scenarios on its C target
+(reactor-c). Rosetta requires Java and `lfc` (the model CI uses LF 0.13),
+plus `cc` and CMake for its C target; Statix requires `cc` and CMake. Compiler-dependent checks require `SYSIDE_LICENSE_KEY`.
 Use a fresh work directory for each run to retain failed build artifacts.
 
 Model PRs run a Quake/Rosetta/Statix matrix; each backend's existing native
