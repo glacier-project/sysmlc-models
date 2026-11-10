@@ -1,4 +1,4 @@
-"""Compile and execute scenario contracts with LF's Python target."""
+"""Compile and execute scenario contracts with LF's Python or C target."""
 
 from __future__ import annotations
 
@@ -18,6 +18,7 @@ from sysmlc_rosetta.builder import RosettaBuilder, finalize
 from sysmlc_rosetta.codegen import PreambleNeeds
 from sysmlc_rosetta.program import LfProgram, Mode, Reaction, Reactor
 from sysmlc_rosetta.serialize import to_lf
+from sysmlc_rosetta.targets import TARGETS, CTarget, PythonTarget
 
 from sysmlc_models._validation import command, constraint_violation, load
 from sysmlc_models.catalog import model_file
@@ -27,6 +28,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from sysmlc.semantics.statemachine.facts import StateFact
+    from sysmlc_rosetta.targets.base import LfTarget
 
     from sysmlc_models.validation import Scalar, Scenario
 
@@ -38,18 +40,15 @@ class _ObservedBuilder(RosettaBuilder):
         # The assembly hook carries the original neutral scope, including
         # parallel regions. Never infer SysML paths from generated names.
         reactor = super()._composite_reactor(scope, container, is_root=is_root)
-        return _observe_modes(reactor, scope)
+        return _observe_modes(reactor, scope, self._target)
 
 
-def _observe_modes(reactor: Reactor, scope: str) -> Reactor:
+def _observe_modes(reactor: Reactor, scope: str, target: LfTarget) -> Reactor:
     modes: list[Mode] = []
     for mode in reactor.modes:
         path = f"{scope}::{mode.name}" if scope else mode.name
         entry, *rest = mode.reactions
-        observation = (
-            'print("__SYSMLC_ENTRY__", '
-            f"lf.time.logical_elapsed() // 1000000, {json.dumps(path)})"
-        )
+        (observation,) = target.render((target.observe_entry(path),))
         modes.append(
             replace(
                 mode,
@@ -62,12 +61,13 @@ def _observe_modes(reactor: Reactor, scope: str) -> Reactor:
     return replace(reactor, modes=tuple(modes))
 
 
-def run(scenario: Scenario, work_dir: Path) -> Result:
+def run(scenario: Scenario, work_dir: Path, target: str = "python") -> Result:
     """Compile a generated LF machine and observe its logical-time entries.
 
     Args:
         scenario: The model execution contract to verify.
         work_dir: Directory containing the generated project.
+        target: The LF target language, ``python`` or ``c``.
 
     Returns:
         Leaf/completion entries and requested final context values.
@@ -80,13 +80,10 @@ def run(scenario: Scenario, work_dir: Path) -> Result:
     """
     model, paths = load(scenario)
     name = scenario.element.split("::")[-1]
-    external: list[ForeignArtifact] = (
-        [ForeignArtifact(model_file(scenario.support), "python")]
-        if scenario.support is not None
-        else []
-    )
+    lang: LfTarget = TARGETS[target]()
+    external = _support(scenario, lang)
     if scenario.kind == "part":
-        built = RosettaBackend().build_part(
+        built = RosettaBackend(target).build_part(
             model,
             scenario.element,
             external=external,
@@ -103,14 +100,16 @@ def run(scenario: Scenario, work_dir: Path) -> Result:
         program = replace(
             built,
             reactors=tuple(
-                _observe_modes(r, instances[r.name])
+                _observe_modes(r, instances[r.name], lang)
                 if r.name in instances
                 else r
                 for r in built.reactors
             ),
         )
     else:
-        needs = PreambleNeeds(catalog=SignalCatalog(model, [scenario.element]))
+        needs = PreambleNeeds(
+            catalog=SignalCatalog(model, [scenario.element]), target=lang
+        )
         needs.types_module = f"{name}_types"
         program = StateMachineDriver(model).run(
             scenario.element,
@@ -118,15 +117,19 @@ def run(scenario: Scenario, work_dir: Path) -> Result:
         )
         assert isinstance(program, LfProgram)
         program = finalize(program, needs)
-    if scenario.attributes or any(event.fields for event in scenario.inputs):
+    if isinstance(lang, PythonTarget) and (
+        scenario.attributes or any(event.fields for event in scenario.inputs)
+    ):
         program = replace(program, preamble=(*program.preamble, "import json"))
     if scenario.attributes:
+        types = {var.name: var.type for var in program.reactor.state_vars}
         observer = Reaction(
             triggers=("shutdown",),
-            body=tuple(
-                f'print("__SYSMLC_VALUE__", {json.dumps(attr)}, '
-                f"json.dumps(self.{attr}))"
-                for attr, _ in scenario.attributes
+            body=lang.render(
+                tuple(
+                    lang.observe_value(attr, types.get(attr))
+                    for attr, _ in scenario.attributes
+                )
             ),
         )
         root = replace(
@@ -145,21 +148,23 @@ def run(scenario: Scenario, work_dir: Path) -> Result:
         (src / f"{program.types_module_name}.py").write_text(
             "\n".join(program.types_module_lines) + "\n"
         )
+    for file_name, text in program.support_files:
+        (src / file_name).write_text(text)
     drivers: list[str] = []
     for index, event in enumerate(scenario.inputs):
         signal = program.resolve_signal(event.signal)
-        payload = (
-            'sys.modules["types"].SimpleNamespace(**json.loads('
-            + json.dumps(json.dumps(dict(event.fields)))
-            + "))"
-            if event.fields
-            else "True"
+        (driver,) = lang.render(
+            (
+                lang.set_port(
+                    f"m.{signal}", _payload(program, lang, signal, event.fields)
+                ),
+            )
         )
         drivers.extend(
             (
                 f"  timer input_{index}({event.time_ms} msec)",
                 f"  reaction(input_{index}) -> m.{signal} {{=",
-                f"    m.{signal}.set({payload})",
+                f"    {driver}",
                 "  =}",
             )
         )
@@ -169,7 +174,7 @@ def run(scenario: Scenario, work_dir: Path) -> Result:
     else:
         (src / f"{name}.lf").write_text(to_lf(program))
         harness.write_text(
-            "target Python {\n  fast: true,\n"
+            f"target {lang.lf_name} {{\n  fast: true,\n"
             f"  timeout: {scenario.horizon_ms} msec\n"
             "}\n"
             f'import {name} from "{name}.lf"\n'
@@ -201,6 +206,42 @@ def run(scenario: Scenario, work_dir: Path) -> Result:
             _, attr, value = line.split(" ", 2)
             attributes.append((attr, json.loads(value)))
     return Result(tuple(entries), tuple(attributes), failure)
+
+
+def _support(scenario: Scenario, lang: LfTarget) -> list[ForeignArtifact]:
+    """The scenario's support code: its Python file, or the C port beside it."""
+    if scenario.support is None:
+        return []
+    path = model_file(scenario.support)
+    if isinstance(lang, PythonTarget):
+        return [ForeignArtifact(path, "python")]
+    return [
+        ForeignArtifact(path.with_suffix(".c"), "c"),
+        ForeignArtifact(path.with_suffix(".h"), "c_h"),
+    ]
+
+
+def _payload(
+    program: LfProgram,
+    lang: LfTarget,
+    signal: str,
+    fields: tuple[tuple[str, Scalar], ...],
+) -> str:
+    """A driver's payload: a bare signal, or the scenario's field values."""
+    if not fields:
+        return lang.boolean(True)
+    if isinstance(lang, CTarget):
+        ctype = dict(program.reactor.port_types)[signal]
+        values = ", ".join(
+            f".{field} = {lang.types.field_literal(ctype, field, value)}"
+            for field, value in fields
+        )
+        return f"({ctype}){{ {values} }}"
+    return (
+        'sys.modules["types"].SimpleNamespace(**json.loads('
+        + json.dumps(json.dumps(dict(fields)))
+        + "))"
+    )
 
 
 def _failure(program: LfProgram, diagnostic: str) -> ConstraintViolation | str:
