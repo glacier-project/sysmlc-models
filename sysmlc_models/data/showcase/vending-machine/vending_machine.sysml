@@ -118,6 +118,6 @@ package VendingMachine {
     part vendingMachineSystem {
         part plant : VendingMachine;
         part tb    : VendingMachineTester;
-        connect plant.commPort to tb.commPort;
+        interface plant.commPort to tb.commPort;
     }
 }

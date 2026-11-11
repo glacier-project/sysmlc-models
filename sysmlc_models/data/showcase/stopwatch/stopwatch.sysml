@@ -79,6 +79,6 @@ package Stopwatch {
     part stopwatchSystem {
         part plant : Stopwatch;
         part tb    : StopwatchTester;
-        connect plant.commPort to tb.commPort;
+        interface plant.commPort to tb.commPort;
     }
 }

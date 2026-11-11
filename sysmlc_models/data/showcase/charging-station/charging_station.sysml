@@ -224,6 +224,6 @@ package ChargingStation {
     part chargingStationSystem {
         part plant : ChargingStation;
         part tb    : ChargingStationTester;
-        connect plant.commPort to tb.commPort;
+        interface plant.commPort to tb.commPort;
     }
 }

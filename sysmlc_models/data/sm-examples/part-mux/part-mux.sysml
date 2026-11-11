@@ -28,7 +28,7 @@ package PartMux {
         part hub : Hub;
         part s1 : Sink1;
         part s2 : Sink2;
-        connect hub.a to s1.p;
-        connect hub.b to s2.p;
+        interface hub.a to s1.p;
+        interface hub.b to s2.p;
     }
 }
