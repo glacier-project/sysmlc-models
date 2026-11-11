@@ -16,7 +16,21 @@ if TYPE_CHECKING:
 
 type Scalar = bool | int | float | str
 
-BACKENDS = ("quake", "rosetta", "statix")
+BACKENDS = ("quake", "rosetta", "rosetta-c", "statix")
+
+_ADAPTERS: dict[str, tuple[str, dict[str, str]]] = {
+    "rosetta-c": ("rosetta", {"target": "c"}),
+}
+
+
+def _adapter(backend: str) -> tuple[str, dict[str, str]]:
+    """The adapter module of ``backend`` and the arguments of its ``run``."""
+    return _ADAPTERS.get(backend, (backend, {}))
+
+
+def supports(scenario: Scenario, backend: str) -> bool:
+    """Whether ``backend`` runs ``scenario``."""
+    return _adapter(backend)[0] in scenario.backends
 
 
 @dataclass(frozen=True, order=True)
@@ -284,7 +298,7 @@ def validate_scenario(
 
     Args:
         scenario: The model execution contract to verify.
-        backend: One of ``quake``, ``rosetta`` or ``statix``.
+        backend: One of :data:`BACKENDS`.
         work_dir: Fresh directory for generated sources and build artifacts.
 
     Returns:
@@ -297,7 +311,7 @@ def validate_scenario(
         OSError: If a required native tool cannot be executed.
         subprocess.TimeoutExpired: If compilation or execution times out.
     """
-    if backend not in BACKENDS or backend not in scenario.backends:
+    if backend not in BACKENDS or not supports(scenario, backend):
         raise ValueError(f"{scenario.name}: unsupported backend {backend!r}")
     if scenario.kind == "part" and (
         scenario.inputs or scenario.overrides or scenario.attributes
@@ -307,10 +321,11 @@ def validate_scenario(
         raise ValueError("external support is configured for part scenarios")
     if backend == "statix" and any(event.fields for event in scenario.inputs):
         raise ValueError("Statix's host runner accepts payload-free inputs")
-    adapter = importlib.import_module(f"sysmlc_models._validation.{backend}")
-    run = cast("Callable[[Scenario, Path], Result]", adapter.run)
+    module, arguments = _adapter(backend)
+    adapter = importlib.import_module(f"sysmlc_models._validation.{module}")
+    run = cast("Callable[..., Result]", adapter.run)
     work_dir.mkdir(parents=True, exist_ok=True)
-    result = run(scenario, work_dir)
+    result = run(scenario, work_dir, **arguments)
     assert_result(scenario, result)
     return result
 
@@ -371,7 +386,7 @@ def main() -> None:
     selected = [
         s
         for s in SCENARIOS
-        if args.backend in s.backends
+        if supports(s, args.backend)
         and (args.scenario is None or args.scenario == s.name)
     ]
     if not selected:

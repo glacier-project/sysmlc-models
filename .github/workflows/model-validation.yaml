@@ -54,7 +54,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        backend: [quake, rosetta, statix]
+        include:
+        - {backend: quake, extra: quake, lfc: false}
+        - {backend: rosetta, extra: rosetta, lfc: true}
+        - {backend: rosetta-c, extra: rosetta, lfc: true}
+        - {backend: statix, extra: statix, lfc: false}
     env:
       LF_VERSION: 0.13.0
       SYSIDE_LICENSE_KEY: ${{ secrets.SYSIDE_LICENSE_KEY }}
@@ -66,13 +70,13 @@ jobs:
         python-version: '3.12'
         git-repos-token: ${{ secrets.GH_REPOS_READ_TOKEN }}
     - name: Set up Java
-      if: matrix.backend == 'rosetta'
+      if: matrix.lfc
       uses: actions/setup-java@v4
       with:
         distribution: temurin
         java-version: '17'
     - name: Install certified LF compiler
-      if: matrix.backend == 'rosetta'
+      if: matrix.lfc
       run: |
         mkdir -p "$RUNNER_TEMP/lf-cli"
         curl -fL --retry 3 -o "$RUNNER_TEMP/lf-cli.tar.gz" \
@@ -80,13 +84,13 @@ jobs:
         tar -xzf "$RUNNER_TEMP/lf-cli.tar.gz" -C "$RUNNER_TEMP/lf-cli" --strip-components=1
         echo "$RUNNER_TEMP/lf-cli/bin" >> "$GITHUB_PATH"
     - name: Verify lfc version
-      if: matrix.backend == 'rosetta'
+      if: matrix.lfc
       run: |
         lfc_version="$(lfc --version)"
         echo "$lfc_version"
         test "$lfc_version" = "lfc ${LF_VERSION}"
     - name: Validate shared model contracts
-      run: uv run --locked --extra dev --extra validation-${{ matrix.backend }} pytest -m integration tests --basetemp="$RUNNER_TEMP/model-validation"
+      run: uv run --locked --extra dev --extra validation-${{ matrix.extra }} pytest -m integration tests --basetemp="$RUNNER_TEMP/model-validation"
     - name: Upload failed build artifacts
       if: failure()
       uses: actions/upload-artifact@v4

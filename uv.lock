@@ -1,5 +1,5 @@
 version = 1
-revision = 5
+revision = 3
 requires-python = ">=3.12, <4"
 
 [[package]]
@@ -542,7 +542,7 @@ wheels = [
 [[package]]
 name = "sysmlc"
 version = "0.0.0"
-source = { git = "https://github.com/glacier-project/sysmlc-core?branch=main#d84d722af65bc1089a5dce3906474850fafe02d7" }
+source = { git = "https://github.com/glacier-project/sysmlc-core?branch=main#de56872242ec276e132c9d26869da09a33761a29" }
 dependencies = [
     { name = "pyyaml" },
     { name = "syside" },
@@ -615,7 +615,7 @@ dependencies = [
 [[package]]
 name = "sysmlc-rosetta"
 version = "0.0.0"
-source = { git = "https://github.com/glacier-project/sysmlc-rosetta?branch=main#3c2465d598f59d50e5fdaf8fabcedb38b6d31af2" }
+source = { git = "https://github.com/glacier-project/sysmlc-rosetta?branch=main#abc4f268d9e505f6a3ad0fc0513fb21f180ea259" }
 dependencies = [
     { name = "syside" },
     { name = "sysmlc" },

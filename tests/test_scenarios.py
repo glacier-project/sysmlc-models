@@ -16,6 +16,7 @@ from sysmlc_models.validation import (
     Result,
     Scenario,
     assert_result,
+    supports,
     validate_scenario,
 )
 
@@ -51,6 +52,12 @@ def test_scenario_catalog_has_unique_names_and_valid_times() -> None:
             *(m.earliest_ms for m in scenario.milestones),
         )
         assert all(0 <= time <= scenario.horizon_ms for time in times)
+
+
+def test_rosetta_c_runs_every_rosetta_scenario() -> None:
+    assert [s.name for s in SCENARIOS if supports(s, "rosetta-c")] == [
+        s.name for s in SCENARIOS if supports(s, "rosetta")
+    ]
 
 
 @pytest.mark.parametrize(
@@ -498,6 +505,6 @@ def test_model_scenario(scenario: Scenario, tmp_path: Path) -> None:
     backend = os.environ.get("SYSMLC_VALIDATION_BACKEND")
     if backend not in BACKENDS:
         pytest.fail("set SYSMLC_VALIDATION_BACKEND to select the target")
-    if backend not in scenario.backends:
+    if not supports(scenario, backend):
         pytest.skip(f"{scenario.name} is not supported by {backend}")
     validate_scenario(scenario, backend, tmp_path)
