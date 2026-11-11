@@ -89,6 +89,6 @@ package Microwave {
     part microwaveSystem {
         part plant : Microwave;
         part tb    : MicrowaveTester;
-        connect plant.commPort to tb.commPort;
+        interface plant.commPort to tb.commPort;
     }
 }

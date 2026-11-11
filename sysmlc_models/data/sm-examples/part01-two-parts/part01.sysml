@@ -38,6 +38,6 @@ package Part01 {
     part pingSystem {                         // top-level usage -> main reactor
         part plant : Plant;
         part tb : Tester;
-        connect plant.commPort to tb.commPort;
+        interface plant.commPort to tb.commPort;
     }
 }

@@ -179,6 +179,6 @@ package BatchReactor {
     part batchReactorSystem {
         part plant : BatchReactor;
         part tb    : BatchReactorTester;
-        connect plant.commPort to tb.commPort;
+        interface plant.commPort to tb.commPort;
     }
 }
