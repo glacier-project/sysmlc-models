@@ -50,7 +50,7 @@ jobs:
   models:
     name: Model scenarios (${{ matrix.backend }})
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
@@ -90,6 +90,20 @@ jobs:
         lfc_version="$(lfc --version)"
         echo "$lfc_version"
         test "$lfc_version" = "lfc ${LF_VERSION}"
+    - name: Check out reactor-uc
+      if: matrix.backend == 'rosetta-uc'
+      uses: actions/checkout@v6
+      with:
+        repository: lf-lang/reactor-uc
+        # The micromode branch, which rosetta's uc target is validated on.
+        ref: 344d5b26a1fd090e85c49fcc224a8fb000dac619
+        submodules: recursive
+        path: reactor-uc
+    - name: Build reactor-uc compiler
+      if: matrix.backend == 'rosetta-uc'
+      run: |
+        reactor-uc/ulf/gradlew --quiet -p reactor-uc/ulf assemble :cli:lfc:assemble
+        echo "REACTOR_UC_PATH=$GITHUB_WORKSPACE/reactor-uc" >> "$GITHUB_ENV"
     - name: Validate shared model contracts
       run: uv run --locked --extra dev --extra validation-${{ matrix.extra }} pytest -m integration tests --basetemp="$RUNNER_TEMP/model-validation"
     - name: Upload failed build artifacts
