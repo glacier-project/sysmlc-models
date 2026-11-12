@@ -615,7 +615,7 @@ dependencies = [
 [[package]]
 name = "sysmlc-rosetta"
 version = "0.0.0"
-source = { git = "https://github.com/glacier-project/sysmlc-rosetta?branch=main#abc4f268d9e505f6a3ad0fc0513fb21f180ea259" }
+source = { git = "https://github.com/glacier-project/sysmlc-rosetta?branch=main#85fc220b80e449c2ec50b598b2b4b805458bdf30" }
 dependencies = [
     { name = "syside" },
     { name = "sysmlc" },
