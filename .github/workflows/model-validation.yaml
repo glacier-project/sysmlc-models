@@ -58,6 +58,7 @@ jobs:
         - {backend: quake, extra: quake, lfc: false}
         - {backend: rosetta, extra: rosetta, lfc: true}
         - {backend: rosetta-c, extra: rosetta, lfc: true}
+        - {backend: rosetta-uc, extra: rosetta, lfc: true}
         - {backend: statix, extra: statix, lfc: false}
     env:
       LF_VERSION: 0.13.0
