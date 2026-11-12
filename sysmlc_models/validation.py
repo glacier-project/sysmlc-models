@@ -16,10 +16,11 @@ if TYPE_CHECKING:
 
 type Scalar = bool | int | float | str
 
-BACKENDS = ("quake", "rosetta", "rosetta-c", "statix")
+BACKENDS = ("quake", "rosetta", "rosetta-c", "rosetta-uc", "statix")
 
 _ADAPTERS: dict[str, tuple[str, dict[str, str]]] = {
     "rosetta-c": ("rosetta", {"target": "c"}),
+    "rosetta-uc": ("rosetta", {"target": "uc"}),
 }
 
 

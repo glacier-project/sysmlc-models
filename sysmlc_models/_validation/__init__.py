@@ -67,13 +67,19 @@ def load(scenario: Scenario) -> tuple[syside.Model, set[str]]:
     return model, observer.paths
 
 
-def command(args: list[str], work_dir: Path, timeout: int = 120) -> str:
+def command(
+    args: list[str],
+    work_dir: Path,
+    timeout: int = 120,
+    env: dict[str, str] | None = None,
+) -> str:
     """Run a build/runtime command and retain its diagnostics on failure.
 
     Args:
         args: Executable and arguments to run without a shell.
         work_dir: Directory containing the generated project.
         timeout: Wall-clock safety limit in seconds.
+        env: The command's environment or this process's when None.
 
     Returns:
         The command's standard output.
@@ -84,7 +90,12 @@ def command(args: list[str], work_dir: Path, timeout: int = 120) -> str:
         subprocess.TimeoutExpired: If the command exceeds the safety limit.
     """
     result = subprocess.run(
-        args, cwd=work_dir, capture_output=True, text=True, timeout=timeout
+        args,
+        cwd=work_dir,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=timeout,
     )
     assert result.returncode == 0, (
         f"{args[0]} exited {result.returncode}:\n"
