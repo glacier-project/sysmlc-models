@@ -280,6 +280,6 @@ package MillingWorkcell {
     part millingWorkcellSystem {
         part plant : MillingWorkcell;
         part tb    : MillingWorkcellTester;
-        connect plant.commPort to tb.commPort;
+        interface plant.commPort to tb.commPort;
     }
 }

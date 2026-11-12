@@ -165,6 +165,6 @@ package LevelCrossing {
     part levelCrossingSystem {
         part plant : LevelCrossing;
         part tb    : LevelCrossingTester;
-        connect plant.commPort to tb.commPort;
+        interface plant.commPort to tb.commPort;
     }
 }

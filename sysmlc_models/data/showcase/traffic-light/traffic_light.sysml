@@ -89,6 +89,6 @@ package TrafficLight {
     part trafficLightSystem {
         part plant : TrafficLight;
         part tb    : TrafficLightTester;
-        connect plant.commPort to tb.commPort;
+        interface plant.commPort to tb.commPort;
     }
 }

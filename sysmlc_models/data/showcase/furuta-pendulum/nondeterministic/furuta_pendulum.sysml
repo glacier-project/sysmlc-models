@@ -417,8 +417,8 @@ package FurutaPendulum {
         part ctrl : Controller;
         part mon  : Monitor;
         // AngleReading: sim→ctrl; Control: ctrl→sim (different names, no cycle)
-        connect sim.armPort  to ctrl.armPort;
+        interface sim.armPort  to ctrl.armPort;
         // Balanced: ctrl→mon
-        connect ctrl.statusPort to mon.statusPort;
+        interface ctrl.statusPort to mon.statusPort;
     }
 }
