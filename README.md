@@ -76,8 +76,10 @@ SYSMLC_VALIDATION_BACKEND=quake uv run --extra dev \
 
 Use `validation-rosetta` or `validation-statix` for the other targets;
 `--backend rosetta-c` runs Rosetta's scenarios on its C target
-(reactor-c). Rosetta requires Java and `lfc` (the model CI uses LF 0.13),
-plus `cc` and CMake for its C target; Statix requires `cc` and CMake. Compiler-dependent checks require `SYSIDE_LICENSE_KEY`.
+(reactor-c), and `--backend rosetta-uc` on its reactor-uc target. Rosetta
+requires Java and `lfc` (the model CI uses LF 0.13), plus `cc` and CMake for
+its C targets; reactor-uc's compiler is the one built in the checkout that
+`REACTOR_UC_PATH` names (its `micromode` branch). Statix requires `cc` and CMake. Compiler-dependent checks require `SYSIDE_LICENSE_KEY`.
 Use a fresh work directory for each run to retain failed build artifacts.
 
 Model PRs run a Quake/Rosetta/Statix matrix; each backend's existing native

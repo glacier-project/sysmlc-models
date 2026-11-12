@@ -1,4 +1,4 @@
-"""Compile and execute scenario contracts with LF's Python or C target."""
+"""Compile and execute scenario contracts with LF's Python, C or uc target."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ import re
 import shutil
 import subprocess
 from dataclasses import asdict, replace
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from sysmlc.semantics.statemachine.driver import StateMachineDriver
@@ -18,15 +19,13 @@ from sysmlc_rosetta.builder import RosettaBuilder, finalize
 from sysmlc_rosetta.codegen import PreambleNeeds
 from sysmlc_rosetta.program import LfProgram, Mode, Reaction, Reactor
 from sysmlc_rosetta.serialize import to_lf
-from sysmlc_rosetta.targets import TARGETS, CTarget, PythonTarget
+from sysmlc_rosetta.targets import TARGETS, CTarget, PythonTarget, UcTarget
 
 from sysmlc_models._validation import command, constraint_violation, load
 from sysmlc_models.catalog import model_file
 from sysmlc_models.validation import ConstraintViolation, Entry, Result
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from sysmlc.semantics.statemachine.facts import StateFact
     from sysmlc_rosetta.targets.base import LfTarget
 
@@ -67,7 +66,8 @@ def run(scenario: Scenario, work_dir: Path, target: str = "python") -> Result:
     Args:
         scenario: The model execution contract to verify.
         work_dir: Directory containing the generated project.
-        target: The LF target language, ``python`` or ``c``.
+        target: The LF target language, a key of
+            :data:`~sysmlc_rosetta.targets.TARGETS`.
 
     Returns:
         Leaf/completion entries and requested final context values.
@@ -82,15 +82,10 @@ def run(scenario: Scenario, work_dir: Path, target: str = "python") -> Result:
     name = scenario.element.split("::")[-1]
     lang: LfTarget = TARGETS[target]()
     external = _support(scenario, lang)
+    options = (("fast", "true"), ("timeout", f"{scenario.horizon_ms} msec"))
     if scenario.kind == "part":
         built = RosettaBackend(target).build_part(
-            model,
-            scenario.element,
-            external=external,
-            target_options=(
-                ("fast", "true"),
-                ("timeout", f"{scenario.horizon_ms} msec"),
-            ),
+            model, scenario.element, external=external, target_options=options
         )
         assert isinstance(built, LfProgram) and built.main is not None
         instances = {i.reactor: i.name for i in built.main.instantiations}
@@ -168,20 +163,22 @@ def run(scenario: Scenario, work_dir: Path, target: str = "python") -> Result:
                 "  =}",
             )
         )
-    harness = src / "Harness.lf"
+    harness = src / f"Harness.{lang.extension}"
     if scenario.kind == "part":
         harness.write_text(to_lf(program))
     else:
-        (src / f"{name}.lf").write_text(to_lf(program))
-        harness.write_text(
-            f"target {lang.lf_name} {{\n  fast: true,\n"
-            f"  timeout: {scenario.horizon_ms} msec\n"
-            "}\n"
-            f'import {name} from "{name}.lf"\n'
-            "main reactor {\n"
-            f"  m = new {name}()\n" + "\n".join(drivers) + "\n}\n"
+        machine = f"{name}.{lang.extension}"
+        (src / machine).write_text(to_lf(program))
+        lines = (
+            *lang.header(options),
+            f'import {name} from "{machine}"',
+            *lang.main_opening(replace(program, target_options=options)),
+            f"  m = new {name}()",
+            *drivers,
+            "}",
         )
-    command(["lfc", str(harness)], work_dir, timeout=600)
+        harness.write_text("\n".join(lines) + "\n")
+    _compile(lang, harness, work_dir, math_library=bool(external))
     process = subprocess.run(
         [str(work_dir / "bin" / "Harness")],
         cwd=work_dir,
@@ -206,6 +203,34 @@ def run(scenario: Scenario, work_dir: Path, target: str = "python") -> Result:
             _, attr, value = line.split(" ", 2)
             attributes.append((attr, json.loads(value)))
     return Result(tuple(entries), tuple(attributes), failure)
+
+
+def _compile(
+    lang: LfTarget, harness: Path, work_dir: Path, *, math_library: bool
+) -> None:
+    """Compile ``harness`` with LF's compiler for ``lang``.
+
+    reactor-uc's compiler is built in its checkout, ``REACTOR_UC_PATH``. Its
+    native build links no math library, which the scenario's own C code
+    may need: ``math_library`` adds it to the link.
+
+    Raises:
+        AssertionError: If compilation fails.
+        OSError: If ``REACTOR_UC_PATH`` is not set for reactor-uc, or the
+            compiler cannot be launched.
+    """
+    if not isinstance(lang, UcTarget):
+        command(["lfc", str(harness)], work_dir, timeout=600)
+        return
+    checkout = os.environ.get("REACTOR_UC_PATH")
+    if checkout is None:
+        raise OSError("set REACTOR_UC_PATH to a reactor-uc checkout")
+    lfc = Path(checkout, "ulf", "build", "install", "lf-cli", "bin", "lfc")
+    env = dict(os.environ)
+    if math_library:
+        flags = env.get("LDFLAGS", "")
+        env["LDFLAGS"] = f"{flags} -Wl,--no-as-needed -lm".strip()
+    command([str(lfc), str(harness)], work_dir, timeout=600, env=env)
 
 
 def _support(scenario: Scenario, lang: LfTarget) -> list[ForeignArtifact]:

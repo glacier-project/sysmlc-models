@@ -54,8 +54,9 @@ def test_scenario_catalog_has_unique_names_and_valid_times() -> None:
         assert all(0 <= time <= scenario.horizon_ms for time in times)
 
 
-def test_rosetta_c_runs_every_rosetta_scenario() -> None:
-    assert [s.name for s in SCENARIOS if supports(s, "rosetta-c")] == [
+@pytest.mark.parametrize("backend", ["rosetta-c", "rosetta-uc"])
+def test_rosetta_targets_run_every_rosetta_scenario(backend: str) -> None:
+    assert [s.name for s in SCENARIOS if supports(s, backend)] == [
         s.name for s in SCENARIOS if supports(s, "rosetta")
     ]
 
