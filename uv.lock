@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.12, <4"
 
 [[package]]
@@ -542,13 +542,19 @@ wheels = [
 [[package]]
 name = "sysmlc"
 version = "0.0.0"
-source = { git = "https://github.com/glacier-project/sysmlc-core?branch=main#c93c8e610bc42e1f20acc722bff696d664b8c8f1" }
+source = { git = "https://github.com/glacier-project/sysmlc-core?branch=main#69e296f74c163e58395e261742288c12ab4904cf" }
 dependencies = [
     { name = "pyyaml" },
     { name = "syside" },
+    { name = "sysmlc-library" },
     { name = "tree-sitter" },
     { name = "tree-sitter-c" },
 ]
+
+[[package]]
+name = "sysmlc-library"
+version = "0.1.0"
+source = { git = "https://github.com/glacier-project/sysmlc-library?branch=main#bd8a5da8b0794baf11a8c197660e1d794992d5d5" }
 
 [[package]]
 name = "sysmlc-models"
@@ -615,7 +621,7 @@ dependencies = [
 [[package]]
 name = "sysmlc-rosetta"
 version = "0.0.0"
-source = { git = "https://github.com/glacier-project/sysmlc-rosetta?branch=main#85fc220b80e449c2ec50b598b2b4b805458bdf30" }
+source = { git = "https://github.com/glacier-project/sysmlc-rosetta?branch=main#abe91ccfc3e1d3f9ea2c712d273f8a31add54e21" }
 dependencies = [
     { name = "syside" },
     { name = "sysmlc" },
