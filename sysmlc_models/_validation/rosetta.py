@@ -8,7 +8,6 @@ import re
 import shutil
 import subprocess
 from dataclasses import asdict, replace
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from sysmlc.semantics.statemachine.driver import StateMachineDriver
@@ -20,12 +19,15 @@ from sysmlc_rosetta.codegen import PreambleNeeds
 from sysmlc_rosetta.program import LfProgram, Mode, Reaction, Reactor
 from sysmlc_rosetta.serialize import to_lf
 from sysmlc_rosetta.targets import TARGETS, CTarget, PythonTarget, UcTarget
+from sysmlc_rosetta.targets.uc import cmake_lists
 
 from sysmlc_models._validation import command, constraint_violation, load
 from sysmlc_models.catalog import model_file
 from sysmlc_models.validation import ConstraintViolation, Entry, Result
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from sysmlc.semantics.statemachine.facts import StateFact
     from sysmlc_rosetta.targets.base import LfTarget
 
@@ -135,8 +137,10 @@ def run(scenario: Scenario, work_dir: Path, target: str = "python") -> Result:
             program,
             reactors=(*program.reactors[:-1], root),
         )
-    src = work_dir / "src"
-    src.mkdir()
+    # reactor-uc's CMakeLists.txt sits beside the program, whose generated
+    # code lfc then writes under it; other targets keep the ``src`` layout.
+    src = work_dir if isinstance(lang, UcTarget) else work_dir / "src"
+    src.mkdir(exist_ok=True)
     for artifact in external:
         shutil.copy(artifact.path, src / artifact.path.name)
     if program.types_module_name is not None:
@@ -178,7 +182,7 @@ def run(scenario: Scenario, work_dir: Path, target: str = "python") -> Result:
             "}",
         )
         harness.write_text("\n".join(lines) + "\n")
-    _compile(lang, harness, work_dir, math_library=bool(external))
+    _compile(lang, harness, work_dir, [a.path.name for a in external])
     process = subprocess.run(
         [str(work_dir / "bin" / "Harness")],
         cwd=work_dir,
@@ -206,13 +210,16 @@ def run(scenario: Scenario, work_dir: Path, target: str = "python") -> Result:
 
 
 def _compile(
-    lang: LfTarget, harness: Path, work_dir: Path, *, math_library: bool
+    lang: LfTarget, harness: Path, work_dir: Path, external: list[str]
 ) -> None:
-    """Compile ``harness`` with LF's compiler for ``lang``.
+    """Build ``harness`` with LF's compiler for ``lang``.
 
-    reactor-uc's compiler is built in its checkout, ``REACTOR_UC_PATH``. Its
-    native build links no math library, which the scenario's own C code
-    may need: ``math_library`` adds it to the link.
+    reactor-uc is built through the ``CMakeLists.txt`` rosetta generates
+    for it in ``work_dir``, where ``harness`` lives: it links the math
+    library and compiles the C sources among ``external``, the scenario's
+    external files beside it. reactor-uc's compiler is built in its
+    checkout, ``REACTOR_UC_PATH``. Other targets are compiled by ``lfc``
+    from ``work_dir``.
 
     Raises:
         AssertionError: If compilation fails.
@@ -222,15 +229,19 @@ def _compile(
     if not isinstance(lang, UcTarget):
         command(["lfc", str(harness)], work_dir, timeout=600)
         return
-    checkout = os.environ.get("REACTOR_UC_PATH")
-    if checkout is None:
+    if os.environ.get("REACTOR_UC_PATH") is None:
         raise OSError("set REACTOR_UC_PATH to a reactor-uc checkout")
-    lfc = Path(checkout, "ulf", "build", "install", "lf-cli", "bin", "lfc")
-    env = dict(os.environ)
-    if math_library:
-        flags = env.get("LDFLAGS", "")
-        env["LDFLAGS"] = f"{flags} -Wl,--no-as-needed -lm".strip()
-    command([str(lfc), str(harness)], work_dir, timeout=600, env=env)
+    (work_dir / "CMakeLists.txt").write_text(
+        cmake_lists(harness.stem, external)
+    )
+    command(
+        ["cmake", "-S", str(work_dir), "-B", str(work_dir / "build")],
+        work_dir,
+        timeout=600,
+    )
+    command(
+        ["cmake", "--build", str(work_dir / "build")], work_dir, timeout=600
+    )
 
 
 def _support(scenario: Scenario, lang: LfTarget) -> list[ForeignArtifact]:

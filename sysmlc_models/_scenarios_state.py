@@ -378,4 +378,26 @@ STATE_SCENARIOS: tuple[Scenario, ...] = (
         ),
         backends=("quake", "rosetta"),
     ),
+    Scenario(
+        "fixed-width-arithmetic",
+        "sm-examples/sm22-fixed-width",
+        "SM22::Machine",
+        1000,
+        (
+            Entry(0, "idle"),
+            Entry(100, "idle"),
+            Entry(200, "idle"),
+            Entry(300, "idle"),
+        ),
+        inputs=(Input(100, "Tick"), Input(200, "Tick"), Input(300, "Tick")),
+        attributes=(
+            ("count", 253),
+            ("big", 4611686014132420609),
+            ("flag", True),
+            ("f", 1.25),
+            ("top", 18446744073709551615),
+            ("low", -9223372036854775808),
+        ),
+        backends=("rosetta",),
+    ),
 )
