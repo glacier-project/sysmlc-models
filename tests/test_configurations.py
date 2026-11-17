@@ -97,3 +97,24 @@ def test_shipped_configuration_binds_its_documented_values(
                 else value
             )
     assert actual == expected
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("target_name", ["python", "c", "uc"])
+def test_fixed_width_model_generates_without_width_warnings(
+    target_name: str, caplog: pytest.LogCaptureFixture
+) -> None:
+    # Needs rosetta, which only the validation-rosetta extra installs.
+    pytest.importorskip("sysmlc_rosetta")
+    from sysmlc.sysml.loading import load_model
+    from sysmlc_rosetta.builder import build_program
+    from sysmlc_rosetta.targets import TARGETS
+
+    model = load_model(model_path("sm-examples/sm22-fixed-width"))
+    with caplog.at_level("WARNING"):
+        build_program(model, "SM22::Machine", target=TARGETS[target_name]())
+    assert [
+        r.getMessage()
+        for r in caplog.records
+        if r.name.startswith("sysmlc_rosetta")
+    ] == []
