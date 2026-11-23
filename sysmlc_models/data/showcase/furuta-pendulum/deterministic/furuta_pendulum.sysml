@@ -18,9 +18,11 @@ package FurutaPendulum {
     // Internal state type: composite attribute (attribute def so the backend
     // recognises it as a structured type and emits a PendulumState dataclass
     // into the backend's generated companion types module).
-    // Default: pendulum hanging DOWN (theta = pi ≈ 3.14159, velocities zero).
+    // Default: pendulum hanging DOWN (theta = -pi ≈ -3.14159, velocities zero).
+    // The sign matters: the controller constants (PHI2, gains) are tuned for a
+    // swing-up that starts at -pi, as in the reference LF model (initial_theta = -3.14159).
     attribute def PendulumState {
-        attribute theta   : Real default 3.14159;
+        attribute theta   : Real default -3.14159;
         attribute d_theta : Real default 0.0;
         attribute phi     : Real default 0.0;
         attribute d_phi   : Real default 0.0;
