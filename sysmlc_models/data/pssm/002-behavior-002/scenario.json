@@ -1,0 +1,17 @@
+{
+  "id": "Behavior002_SemanticTest",
+  "clause": "9.3.2.3",
+  "property": "S1 exit runs on external departure.",
+  "mapping": "Enter S1, then accept Start to done. Only the exit writes the log.",
+  "element": "PSSM_Behavior002::Machine",
+  "inputs": [
+    {
+      "time_ms": 100,
+      "signal": "Start",
+      "fields": []
+    }
+  ],
+  "expected_traces": [
+    "S1(exit)"
+  ]
+}

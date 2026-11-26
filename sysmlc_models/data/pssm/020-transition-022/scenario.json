@@ -1,0 +1,17 @@
+{
+  "id": "Transition022_SemanticTest",
+  "clause": "9.3.3.14",
+  "property": "A false guard excludes a transition on successive visits until count reaches five.",
+  "mapping": "Evaluate the two guards on a mutable count. Each T3 increments the count and logs once. Expect exactly five T3 markers and completion.",
+  "element": "PSSM_Transition022::Machine",
+  "inputs": [
+    {
+      "time_ms": 100,
+      "signal": "Start",
+      "fields": []
+    }
+  ],
+  "expected_traces": [
+    "T3::T3::T3::T3::T3"
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "id": "History001_SemanticTest_A",
+  "clause": "9.3.15.2",
+  "property": "A deep history entrance restores the actual nested leaf.",
+  "mapping": "A persistent Boolean suffices for the two reachable leaves in this scenario. Set it on actual leaf entry, then branch upon re-entry. Inspect that the first leaf's entry is absent on the second visit. This is explicit model memory.",
+  "element": "PSSM_History001A::Machine",
+  "inputs": [
+    {
+      "time_ms": 100,
+      "signal": "Start",
+      "fields": []
+    },
+    {
+      "time_ms": 200,
+      "signal": "AnotherSignal",
+      "fields": []
+    },
+    {
+      "time_ms": 300,
+      "signal": "Continue",
+      "fields": []
+    }
+  ],
+  "expected_traces": [
+    "S1(entry)::S1.1(entry)::S1.1.1(entry)::S1.1.2(entry)::T3(effect)::S1(entry)::S1.1(entry)::S1.1.2(entry)"
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "id": "Transition001_SemanticTest",
+  "clause": "9.3.3.1",
+  "property": "Traversing T2 executes its effect.",
+  "mapping": "Attach the marker to the Start transition. Completing with no other writes gives T2(effect).",
+  "element": "PSSM_Transition001::Machine",
+  "inputs": [
+    {
+      "time_ms": 100,
+      "signal": "Start",
+      "fields": []
+    }
+  ],
+  "expected_traces": [
+    "T2(effect)"
+  ]
+}

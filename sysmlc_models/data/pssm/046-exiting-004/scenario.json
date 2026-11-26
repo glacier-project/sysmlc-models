@@ -1,0 +1,17 @@
+{
+  "id": "Exiting004_SemanticTest",
+  "clause": "9.3.6.5",
+  "property": "An unguarded exit-point leg performs its effect before the composite exits.",
+  "mapping": "Use child completion carrying the unique outgoing effect followed by parent completion. Expect child exit, T1.2, S1 exit on this single path.",
+  "element": "PSSM_Exiting004::Machine",
+  "inputs": [
+    {
+      "time_ms": 100,
+      "signal": "Start",
+      "fields": []
+    }
+  ],
+  "expected_traces": [
+    "S1.1(exit)::T1.2(effect)::S1(exit)"
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "id": "Event001_SemanticTest",
+  "clause": "9.3.4.2",
+  "property": "Initialization reaches the wait state before any stimulus.",
+  "mapping": "Select wait by its initial succession. Record the time-zero entry and its exit on Start.",
+  "element": "PSSM_Event001::Machine",
+  "inputs": [
+    {
+      "time_ms": 100,
+      "signal": "Start",
+      "fields": []
+    }
+  ],
+  "expected_traces": [
+    "wait(exit)"
+  ]
+}

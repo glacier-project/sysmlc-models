@@ -1,0 +1,18 @@
+{
+  "id": "Entry002_SemanticTest_A",
+  "clause": "9.3.7.2",
+  "property": "An entry point with no continuation allows both regions to use default entry.",
+  "mapping": "Drop the inert connector and activate both region substates. Check both entry markers under the partial-order oracle.",
+  "element": "PSSM_Entry002A::Machine",
+  "inputs": [
+    {
+      "time_ms": 100,
+      "signal": "Start",
+      "fields": []
+    }
+  ],
+  "expected_traces": [
+    "S1.1(entry)::S2.1(entry)",
+    "S2.1(entry)::S1.1(entry)"
+  ]
+}

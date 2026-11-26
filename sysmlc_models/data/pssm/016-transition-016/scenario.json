@@ -1,0 +1,17 @@
+{
+  "id": "Transition016_SemanticTest",
+  "clause": "9.3.3.10",
+  "property": "A state with no do or entry immediately enables its completion edge.",
+  "mapping": "After Start, the newly active S1 has an automatic transition and no preceding work. Observe T2 and completion.",
+  "element": "PSSM_Transition016::Machine",
+  "inputs": [
+    {
+      "time_ms": 100,
+      "signal": "Start",
+      "fields": []
+    }
+  ],
+  "expected_traces": [
+    "T2(effect)"
+  ]
+}

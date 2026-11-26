@@ -1,0 +1,32 @@
+{
+  "id": "Transition010_SemanticTest",
+  "clause": "9.3.3.3",
+  "property": "Repeated internal handling preserves S1's entry and exit counts.",
+  "mapping": "A private child self-transition handles two AnotherSignal occurrences. Only Continue leaves S1. This encoding preserves the leaf's visible lifecycle in this test.",
+  "element": "PSSM_Transition010::Machine",
+  "inputs": [
+    {
+      "time_ms": 100,
+      "signal": "Start",
+      "fields": []
+    },
+    {
+      "time_ms": 200,
+      "signal": "AnotherSignal",
+      "fields": []
+    },
+    {
+      "time_ms": 300,
+      "signal": "AnotherSignal",
+      "fields": []
+    },
+    {
+      "time_ms": 400,
+      "signal": "Continue",
+      "fields": []
+    }
+  ],
+  "expected_traces": [
+    "Waiting(exit)::S1(entry)::IT::IT::S1(exit)"
+  ]
+}

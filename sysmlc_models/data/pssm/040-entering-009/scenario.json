@@ -1,0 +1,17 @@
+{
+  "id": "Entering009_SemanticTest",
+  "clause": "9.3.5.4",
+  "property": "Parent entry precedes an entry-point continuation effect and the child's entry.",
+  "mapping": "Use the single ingress to sequence S1's entry then T1.1, followed by the child succession. The four markers distinguish the phase boundaries.",
+  "element": "PSSM_Entering009::Machine",
+  "inputs": [
+    {
+      "time_ms": 100,
+      "signal": "Start",
+      "fields": []
+    }
+  ],
+  "expected_traces": [
+    "T2(effect)::S1(entry)::T1.1(effect)::S1.1(entry)"
+  ]
+}

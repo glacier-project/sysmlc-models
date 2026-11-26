@@ -1,0 +1,18 @@
+{
+  "id": "Transition015_SemanticTest",
+  "clause": "9.3.3.9",
+  "property": "Whether do and entry must have completed before a simple state's completion transition.",
+  "mapping": "The expected set permits either interruption of the leaf do action or completion of its single assignment before the eventless departure.",
+  "element": "PSSM_Transition015::Machine",
+  "inputs": [
+    {
+      "time_ms": 100,
+      "signal": "Start",
+      "fields": []
+    }
+  ],
+  "expected_traces": [
+    "S1(entry)",
+    "S1(entry)::S1(doActivity)"
+  ]
+}

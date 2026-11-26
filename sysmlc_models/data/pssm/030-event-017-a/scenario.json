@@ -1,0 +1,27 @@
+{
+  "id": "Event017_SemanticTest_A",
+  "clause": "9.3.4.10",
+  "property": "A signal value is available when selecting a guard.",
+  "mapping": "Bind data in accept and test data.value on separate guards. Data(true) selects T3. PDF and executable XMI references disagree on T4's guard. The true input alone cannot distinguish the two readings.",
+  "element": "PSSM_Event017A::Machine",
+  "inputs": [
+    {
+      "time_ms": 100,
+      "signal": "Start",
+      "fields": []
+    },
+    {
+      "time_ms": 200,
+      "signal": "Data",
+      "fields": [
+        [
+          "value",
+          true
+        ]
+      ]
+    }
+  ],
+  "expected_traces": [
+    "T3(effect)"
+  ]
+}

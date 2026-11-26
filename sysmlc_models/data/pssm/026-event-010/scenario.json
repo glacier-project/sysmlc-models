@@ -1,0 +1,22 @@
+{
+  "id": "Event010_SemanticTest",
+  "clause": "9.3.4.6",
+  "property": "Conflicts at two successive source configurations resolve to one enabled transition each.",
+  "mapping": "Use declaration order at each active source, including the child before any eligible parent. Check the two selected effects and the target entries.",
+  "element": "PSSM_Event010::Machine",
+  "inputs": [
+    {
+      "time_ms": 100,
+      "signal": "Start",
+      "fields": []
+    },
+    {
+      "time_ms": 200,
+      "signal": "Continue",
+      "fields": []
+    }
+  ],
+  "expected_traces": [
+    "T2(effect)::S1(entry)::S1.1(entry)::T1.2(effect)::S1.2(entry)"
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "id": "Choice002_SemanticTest",
+  "clause": "9.3.9.3",
+  "property": "Exactly one enabled outgoing choice branch runs.",
+  "mapping": "For this closed finite trace, add a transient decision state with three ordered automatic alternatives. T3 wins. State-entry observations include an extra internal state.",
+  "element": "PSSM_Choice002::Machine",
+  "inputs": [
+    {
+      "time_ms": 100,
+      "signal": "Start",
+      "fields": []
+    }
+  ],
+  "expected_traces": [
+    "T3(effect)"
+  ]
+}

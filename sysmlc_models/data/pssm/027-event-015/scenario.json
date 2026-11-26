@@ -1,0 +1,17 @@
+{
+  "id": "Event015_SemanticTest",
+  "clause": "9.3.4.7",
+  "property": "Competing completion edges yield one effect.",
+  "mapping": "Use sibling automatic edges in original declaration order. The first eligible edge alone appends its effect.",
+  "element": "PSSM_Event015::Machine",
+  "inputs": [
+    {
+      "time_ms": 100,
+      "signal": "Start",
+      "fields": []
+    }
+  ],
+  "expected_traces": [
+    "T1.2(effect)"
+  ]
+}

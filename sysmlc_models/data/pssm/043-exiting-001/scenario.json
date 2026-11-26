@@ -1,0 +1,22 @@
+{
+  "id": "Exiting001_SemanticTest",
+  "clause": "9.3.6.2",
+  "property": "Parent interruption cleans up nested parallel regions before S1 exits.",
+  "mapping": "Use the parent-sourced Continue transition, collecting the innermost exits in each region before its enclosing exit. Policy orders region cleanup.",
+  "element": "PSSM_Exiting001::Machine",
+  "inputs": [
+    {
+      "time_ms": 100,
+      "signal": "Start",
+      "fields": []
+    },
+    {
+      "time_ms": 200,
+      "signal": "Continue",
+      "fields": []
+    }
+  ],
+  "expected_traces": [
+    "S1.1.1(exit)::S1.1(exit)::S2.1(exit)::S1(exit)"
+  ]
+}

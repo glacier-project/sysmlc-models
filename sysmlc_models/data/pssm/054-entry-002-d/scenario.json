@@ -1,0 +1,17 @@
+{
+  "id": "Entry002_SemanticTest_D",
+  "clause": "9.3.7.5",
+  "property": "An entry point without a continuation falls back to the ordinary initial effect.",
+  "mapping": "Fold the inert point, sequence the S1 entry and initial effect before S1.1, and observe its completion effect.",
+  "element": "PSSM_Entry002D::Machine",
+  "inputs": [
+    {
+      "time_ms": 100,
+      "signal": "Start",
+      "fields": []
+    }
+  ],
+  "expected_traces": [
+    "T2(effect)::S1(entry)::T1.1(effect)::T1.2(effect)"
+  ]
+}

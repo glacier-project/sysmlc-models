@@ -14,11 +14,12 @@ take `sm-examples/sm01-helloworld` in place of a filesystem path.
 
 The corpora ship as package data under `sysmlc_models/data/`:
 
-| Corpus         | Models | Contents                                                                                                                  |
-| -------------- | -----: | ------------------------------------------------------------------------------------------------------------------------- |
-| `sm-examples/` |     25 | the SysML state-machine example corpus, `sm01-helloworld` onward, plus the `part*` multi-machine fixtures                 |
-| `showcase/`    |     11 | end-to-end showcase models and variants (Furuta pendulum, thermostat, milling workcell, …)                                |
-| `ice-lab/`     |      6 | the industrial ICE-lab plant: plant definition, recipes, domain models, equipment state machines, OPC-UA service metadata |
+| Corpus                  | Models | Contents                                                                                                                  |
+| ----------------------- | -----: | ------------------------------------------------------------------------------------------------------------------------- |
+| `sm-examples/`          |     25 | the SysML state-machine example corpus, `sm01-helloworld` onward, plus the `part*` multi-machine fixtures                 |
+| `showcase/`             |     11 | end-to-end showcase models and variants (Furuta pendulum, thermostat, milling workcell, …)                                |
+| [`pssm/`](docs/pssm.md) |     24 | PSSM-derived state machines with executable Rosetta scenarios                                                             |
+| `ice-lab/`              |      6 | the industrial ICE-lab plant: plant definition, recipes, domain models, equipment state machines, OPC-UA service metadata |
 
 ## Installation
 

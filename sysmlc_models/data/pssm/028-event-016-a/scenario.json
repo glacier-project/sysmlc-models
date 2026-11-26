@@ -1,0 +1,27 @@
+{
+  "id": "Event016_SemanticTest_A",
+  "clause": "9.3.4.8",
+  "property": "An accepting child gets Continue before its parent, and a later Continue reaches the parent.",
+  "mapping": "Keep both accepts, complete the child first, then take the parent edge on a distinct occurrence. Require both effects and their ordering.",
+  "element": "PSSM_Event016A::Machine",
+  "inputs": [
+    {
+      "time_ms": 100,
+      "signal": "Start",
+      "fields": []
+    },
+    {
+      "time_ms": 200,
+      "signal": "Continue",
+      "fields": []
+    },
+    {
+      "time_ms": 300,
+      "signal": "Continue",
+      "fields": []
+    }
+  ],
+  "expected_traces": [
+    "T1.2(effect)::T3(effect)"
+  ]
+}

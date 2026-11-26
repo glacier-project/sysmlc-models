@@ -1,0 +1,17 @@
+{
+  "id": "Behavior001_SemanticTest",
+  "clause": "9.3.2.2",
+  "property": "S1 entry runs once on initialization.",
+  "mapping": "Use the initial succession into S1 and an entry log. Start completes the state without another entry.",
+  "element": "PSSM_Behavior001::Machine",
+  "inputs": [
+    {
+      "time_ms": 100,
+      "signal": "Start",
+      "fields": []
+    }
+  ],
+  "expected_traces": [
+    "S1(entry)"
+  ]
+}

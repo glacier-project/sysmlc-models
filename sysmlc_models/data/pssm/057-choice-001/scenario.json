@@ -1,0 +1,17 @@
+{
+  "id": "Choice001_SemanticTest",
+  "clause": "9.3.9.2",
+  "property": "A dynamic choice uses state modified earlier in the traversal.",
+  "mapping": "Inline integer initialization and increments, followed by a transient choice with guarded automatic edges. Expect four T4 markers before the value reaches five.",
+  "element": "PSSM_Choice001::Machine",
+  "inputs": [
+    {
+      "time_ms": 100,
+      "signal": "Start",
+      "fields": []
+    }
+  ],
+  "expected_traces": [
+    "T4(effect)::T4(effect)::T4(effect)::T4(effect)"
+  ]
+}

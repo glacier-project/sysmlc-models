@@ -1,0 +1,27 @@
+{
+  "id": "Transition007_SemanticTest",
+  "clause": "9.3.3.2",
+  "property": "Either of two signal types triggers T2.",
+  "mapping": "Duplicate the accept edge with identical guard/effect for the second signal. The sent sequence exercises the alternative branches at S1 and T2 on Continue. A second driver using the other trigger while S3 is active would distinguish the full disjunction. The driver omits the suite's initial Start, which the machine neither accepts nor defers.",
+  "element": "PSSM_Transition007::Machine",
+  "inputs": [
+    {
+      "time_ms": 100,
+      "signal": "AnotherSignal",
+      "fields": []
+    },
+    {
+      "time_ms": 200,
+      "signal": "Continue",
+      "fields": []
+    },
+    {
+      "time_ms": 300,
+      "signal": "Continue",
+      "fields": []
+    }
+  ],
+  "expected_traces": [
+    "T1(effect)::T2(effect)::T3(effect)"
+  ]
+}

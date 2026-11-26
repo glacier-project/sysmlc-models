@@ -1,0 +1,22 @@
+{
+  "id": "Event002_SemanticTest",
+  "clause": "9.3.4.3",
+  "property": "One accepted occurrence triggers one composite departure.",
+  "mapping": "Use the adopted parent interruption rule, finishing active child cleanup before S1 exit. The second stimulus produces a single departure.",
+  "element": "PSSM_Event002::Machine",
+  "inputs": [
+    {
+      "time_ms": 100,
+      "signal": "Start",
+      "fields": []
+    },
+    {
+      "time_ms": 200,
+      "signal": "AnotherSignal",
+      "fields": []
+    }
+  ],
+  "expected_traces": [
+    "S1(entry)::S1.1(entry)::S1(exit)"
+  ]
+}

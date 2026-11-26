@@ -1,0 +1,27 @@
+{
+  "id": "Entering011_SemanticTest",
+  "clause": "9.3.5.6",
+  "property": "Default entry initializes all parallel regions after parent entry.",
+  "mapping": "Use one region state per UML region, sequencing each initial effect before its own leaf entry. Test the permitted partial ordering of five markers.",
+  "element": "PSSM_Entering011::Machine",
+  "inputs": [
+    {
+      "time_ms": 100,
+      "signal": "Start",
+      "fields": []
+    },
+    {
+      "time_ms": 200,
+      "signal": "Continue",
+      "fields": []
+    }
+  ],
+  "expected_traces": [
+    "S1(entry)::T2.1(effect)::S1.2(entry)::T1.1(effect)::S1.1(entry)",
+    "S1(entry)::T2.1(effect)::T1.1(effect)::S1.2(entry)::S1.1(entry)",
+    "S1(entry)::T2.1(effect)::T1.1(effect)::S1.1(entry)::S1.2(entry)",
+    "S1(entry)::T1.1(effect)::T2.1(effect)::S1.1(entry)::S1.2(entry)",
+    "S1(entry)::T1.1(effect)::T2.1(effect)::S1.2(entry)::S1.1(entry)",
+    "S1(entry)::T1.1(effect)::S1.1(entry)::T2.1(effect)::S1.2(entry)"
+  ]
+}

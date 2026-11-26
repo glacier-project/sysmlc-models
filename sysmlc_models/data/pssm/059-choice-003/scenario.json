@@ -1,0 +1,17 @@
+{
+  "id": "Choice003_SemanticTest",
+  "clause": "9.3.9.4",
+  "property": "Else runs when all ordinary choice guards fail.",
+  "mapping": "Place the two false alternatives ahead of an unconditional fallback. Only T4 writes. This preserves the observable else behavior in this case.",
+  "element": "PSSM_Choice003::Machine",
+  "inputs": [
+    {
+      "time_ms": 100,
+      "signal": "Start",
+      "fields": []
+    }
+  ],
+  "expected_traces": [
+    "T4(effect)"
+  ]
+}
